@@ -10,12 +10,21 @@ import AnalyticsScreen from '../screens/AnalyticsScreen';
 import TemplatesScreen from '../screens/TemplatesScreen';
 import CreateTemplateScreen from '../screens/CreateTemplateScreen';
 import EditTimeBlocksScreen from '../screens/EditTimeBlocksScreen';
+import CalendarScreen from '../screens/CalendarScreen';
+import WellnessCategoriesScreen from '../screens/WellnessCategoriesScreen';
+import ActivityTypesScreen from '../screens/ActivityTypesScreen';
+import DayDimensionsScreen from '../screens/DayDimensionsScreen';
+import CategoriesScreen from '../screens/CategoriesScreen';
+import ActivitiesScreen from '../screens/ActivitiesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import ProgressScreen from '../screens/ProgressScreen';
+import DashboardScreen from '../screens/DashboardScreen';
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tab Navigator for main screens (Now, Today, Report)
+// Tab Navigator for main screens (Now, Today, Report, Templates)
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={{
@@ -87,7 +96,7 @@ const TabNavigator = () => (
   </Tab.Navigator>
 );
 
-// Main Stack Navigator containing tabs and template screens
+// Main Stack Navigator containing tabs and all other screens
 const MainStackNavigator = () => (
   <Stack.Navigator
     screenOptions={{
@@ -108,6 +117,8 @@ const MainStackNavigator = () => (
         headerTitle: 'Eterny'
       }}
     />
+    
+    {/* Template Management Screens */}
     <Stack.Screen 
       name="CreateTemplate" 
       component={CreateTemplateScreen}
@@ -117,6 +128,57 @@ const MainStackNavigator = () => (
       name="EditTimeBlocks" 
       component={EditTimeBlocksScreen}
       options={{ title: 'Edit Time Blocks' }}
+    />
+    
+    {/* Calendar and Planning Screens */}
+    <Stack.Screen 
+      name="Calendar" 
+      component={CalendarScreen}
+      options={{ title: 'Plan Calendar' }}
+    />
+    
+    {/* Configuration Screens */}
+    <Stack.Screen 
+      name="WellnessCategories" 
+      component={WellnessCategoriesScreen}
+      options={{ title: 'Wellness Categories' }}
+    />
+    <Stack.Screen 
+      name="ActivityTypes" 
+      component={ActivityTypesScreen}
+      options={{ title: 'Activity Types' }}
+    />
+    <Stack.Screen 
+      name="DayDimensions" 
+      component={DayDimensionsScreen}
+      options={{ title: 'Day Dimensions' }}
+    />
+    <Stack.Screen 
+      name="Categories" 
+      component={CategoriesScreen}
+      options={{ title: 'Categories' }}
+    />
+    <Stack.Screen 
+      name="Activities" 
+      component={ActivitiesScreen}
+      options={{ title: 'Activities' }}
+    />
+    
+    {/* Other Screens */}
+    <Stack.Screen 
+      name="Settings" 
+      component={SettingsScreen}
+      options={{ title: 'Settings' }}
+    />
+    <Stack.Screen 
+      name="Progress" 
+      component={ProgressScreen}
+      options={{ title: 'Progress' }}
+    />
+    <Stack.Screen 
+      name="Dashboard" 
+      component={DashboardScreen}
+      options={{ title: 'Dashboard' }}
     />
   </Stack.Navigator>
 );
