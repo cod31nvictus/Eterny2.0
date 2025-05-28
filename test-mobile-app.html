@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #5856eb; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .app-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .app-link {
+            padding: 15px 25px;
+            background: #6366f1;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .app-link:hover {
+            background: #5856eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Eterny 2.0 - Mobile App Testing</h1>
+        
+        <div class="test-section">
+            <h3>📱 React Native Web App</h3>
+            <div id="mobile-status" class="status info">Testing mobile app accessibility...</div>
+            <p>The React Native app should be running with the new navigation architecture:</p>
+            <ul>
+                <li>✅ Bottom Tab Navigation (Now, Today, Report)</li>
+                <li>✅ Drawer Navigation (Profile, Categories, Activities, etc.)</li>
+                <li>✅ Real-time countdown timers</li>
+                <li>✅ Timeline view for today's schedule</li>
+                <li>✅ Web-compatible Google Sign-in</li>
+            </ul>
+        </div>
+
+        <div class="app-links">
+            <a href="http://localhost:3001" target="_blank" class="app-link">
+                📱 Open Mobile App
+            </a>
+            <a href="http://localhost:8080/test-app.html" target="_blank" class="app-link">
+                🧪 Open API Test Interface
+            </a>
+            <a href="http://localhost:5001/ping" target="_blank" class="app-link">
+                🔧 Test Backend API
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 App Preview</h3>
+            <p>Mobile app embedded below (if accessible):</p>
+            <iframe src="http://localhost:3001" title="Eterny Mobile App"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Test mobile app accessibility
+        async function testMobileApp() {
+            const statusDiv = document.getElementById('mobile-status');
+            
+            try {
+                const response = await fetch('http://localhost:3001');
+                if (response.ok) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Mobile app is running successfully!';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Mobile app returned error: ' + response.status;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Mobile app is not accessible: ' + error.message;
+            }
+        }
+
+        // Run test when page loads
+        window.addEventListener('load', testMobileApp);
+    </script>
+</body>
+</html> 

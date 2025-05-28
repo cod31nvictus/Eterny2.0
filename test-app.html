@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eterny 2.0 - Test App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #6366f1;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .login-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            background: #5855eb;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        
+        .user-info {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .api-test {
+            margin-top: 30px;
+        }
+        
+        .api-result {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 Eterny 2.0</h1>
+            <p>Wellness Time Management Platform - Test Interface</p>
+        </div>
+        
+        <div id="loginSection" class="login-section">
+            <h3>Authentication Test</h3>
+            <button id="loginBtn" class="btn">🚀 Login with Demo Account</button>
+            <button id="statusBtn" class="btn">📊 Check API Status</button>
+        </div>
+        
+        <div id="statusDiv"></div>
+        
+        <div id="userSection" class="hidden">
+            <div class="user-info">
+                <h3>👤 Logged in as:</h3>
+                <div id="userInfo"></div>
+                <button id="logoutBtn" class="btn">🚪 Logout</button>
+            </div>
+            
+            <div class="api-test">
+                <h3>🔧 API Tests</h3>
+                <div class="grid">
+                    <button class="btn" onclick="testAPI('/api/categories', 'Get Categories')">📂 Categories</button>
+                    <button class="btn" onclick="testAPI('/api/activities', 'Get Activities')">🎯 Activities</button>
+                    <button class="btn" onclick="testAPI('/api/dimensions', 'Get Dimensions')">📏 Dimensions</button>
+                    <button class="btn" onclick="testAPI('/api/templates', 'Get Templates')">📋 Templates</button>
+                    <button class="btn" onclick="testAPI('/api/calendar', 'Get Calendar')">📅 Calendar</button>
+                    <button class="btn" onclick="testAPI('/api/summary', 'Get Summary')">📊 Summary</button>
+                </div>
+                <div id="apiResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        let authToken = localStorage.getItem('eterny_token');
+        let currentUser = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                checkAuthStatus();
+            }
+            
+            document.getElementById('loginBtn').addEventListener('click', login);
+            document.getElementById('statusBtn').addEventListener('click', checkStatus);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+        });
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function checkStatus() {
+            try {
+                showStatus('🔄 Checking API status...', 'info');
+                const response = await fetch(`${API_BASE}/ping`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ API is running! Response: ${data.message} at ${data.timestamp}`, 'success');
+                } else {
+                    showStatus('❌ API check failed', 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function login() {
+            try {
+                showStatus('🔄 Logging in with demo account...', 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/dummy-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('eterny_token', authToken);
+                    
+                    showStatus('✅ Login successful!', 'success');
+                    showUserSection();
+                } else {
+                    showStatus(`❌ Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showUserSection();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        function showUserSection() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('userSection').classList.remove('hidden');
+            
+            document.getElementById('userInfo').innerHTML = `
+                <p><strong>Name:</strong> ${currentUser.name}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>ID:</strong> ${currentUser.id}</p>
+            `;
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('eterny_token');
+            
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('userSection').classList.add('hidden');
+            document.getElementById('apiResults').innerHTML = '';
+            
+            showStatus('👋 Logged out successfully', 'info');
+        }
+
+        async function testAPI(endpoint, name) {
+            try {
+                showStatus(`🔄 Testing ${name}...`, 'info');
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('apiResults');
+                const resultHtml = `
+                    <div class="api-result">
+                        <strong>${name} (${response.status})</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML;
+                
+                if (response.ok) {
+                    showStatus(`✅ ${name} test successful!`, 'success');
+                } else {
+                    showStatus(`❌ ${name} test failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ ${name} error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 
