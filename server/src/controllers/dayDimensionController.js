@@ -66,10 +66,8 @@ const updateDayDimension = async (req, res) => {
       return res.status(404).json({ error: 'Dimension not found' });
     }
     
-    // Don't allow updating default dimensions
-    if (dimension.isDefault) {
-      return res.status(400).json({ error: 'Cannot update default dimensions' });
-    }
+    // Allow updating default dimensions (but not deleting them)
+    // This enables users to customize default day dimensions to their needs
     
     // Update fields
     if (name) dimension.name = name.trim();

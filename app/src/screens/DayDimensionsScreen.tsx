@@ -174,11 +174,8 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => openModal(item)}
-            disabled={item.isDefault}
           >
-            <Text style={[styles.editButtonText, item.isDefault && styles.disabledText]}>
-              {item.isDefault ? '🔒' : '✏️'}
-            </Text>
+            <Text style={styles.editButtonText}>✏️</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteButton}
@@ -208,7 +205,7 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
       
       {item.isDefault && (
-        <Text style={styles.defaultLabel}>Default Dimension</Text>
+        <Text style={styles.defaultLabel}>Default Dimension (Editable)</Text>
       )}
     </View>
   );
