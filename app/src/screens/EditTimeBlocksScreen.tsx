@@ -44,6 +44,7 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
   const [dayStartTime, setDayStartTime] = useState('06:00');
   const [tempStartTime, setTempStartTime] = useState('06:00');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customNames, setCustomNames] = useState<{ [activityId: string]: string }>({});
 
   useEffect(() => {
     fetchActivities();
@@ -160,6 +161,7 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
       setTimeBlocks(updatedBlocks);
       setShowActivityModal(null);
       setSearchQuery(''); // Clear search when modal closes
+      setCustomNames({}); // Clear custom names when modal closes
     }
   };
 
@@ -490,6 +492,7 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
             <TouchableOpacity onPress={() => {
               setShowActivityModal(null);
               setSearchQuery('');
+              setCustomNames({});
             }}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -549,8 +552,15 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
                       <TextInput
                         style={styles.customNameInput}
                         placeholder={activity.name}
-                        onSubmitEditing={(event) => {
-                          const customName = event.nativeEvent.text.trim();
+                        value={customNames[activity._id] || ''}
+                        onChangeText={(text) => {
+                          setCustomNames(prev => ({
+                            ...prev,
+                            [activity._id]: text
+                          }));
+                        }}
+                        onSubmitEditing={() => {
+                          const customName = customNames[activity._id]?.trim();
                           if (showActivityModal) {
                             handleActivitySelect(showActivityModal.index, activity, customName || activity.name);
                           }
@@ -561,8 +571,8 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
                         style={styles.useCustomButton}
                         onPress={() => {
                           if (showActivityModal) {
-                            // Get the current value from the input - for now just use activity name
-                            handleActivitySelect(showActivityModal.index, activity, activity.name);
+                            const customName = customNames[activity._id]?.trim();
+                            handleActivitySelect(showActivityModal.index, activity, customName || activity.name);
                           }
                         }}
                       >
