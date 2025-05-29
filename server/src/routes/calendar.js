@@ -11,10 +11,7 @@ const {
   editRecurringEvent,
   deleteRecurringEvent
 } = require('../controllers/calendarController');
-const CalendarAssignment = require('../models/CalendarAssignment');
-const DayTemplate = require('../models/DayTemplate');
-const ActivityType = require('../models/ActivityType');
-const WellnessTag = require('../models/WellnessTag');
+const PlannedDay = require('../models/PlannedDay');
 const googleCalendarService = require('../services/googleCalendarService');
 
 // All routes require authentication
@@ -79,13 +76,29 @@ router.post('/sync/:date', async (req, res) => {
   try {
     const { date } = req.params;
     
-    // Get the schedule for this date
-    const assignments = await CalendarAssignment.find({
+    // Get the schedule for this date using PlannedDay model
+    const plannedDays = await PlannedDay.find({
       userId: req.user.id,
-      startDate: { $lte: new Date(date) },
+      isActive: true,
       $or: [
-        { endDate: { $gte: new Date(date) } },
-        { endDate: null }
+        // One-time events on this specific date
+        {
+          'recurrence.type': 'none',
+          startDate: { $lte: new Date(date) },
+          $or: [
+            { endDate: { $gte: new Date(date) } },
+            { endDate: null }
+          ]
+        },
+        // Recurring events that might include this date
+        {
+          'recurrence.type': { $ne: 'none' },
+          startDate: { $lte: new Date(date) },
+          $or: [
+            { 'recurrence.endDate': { $gte: new Date(date) } },
+            { 'recurrence.endDate': null }
+          ]
+        }
       ]
     }).populate({
       path: 'templateId',
@@ -97,16 +110,21 @@ router.post('/sync/:date', async (req, res) => {
       }
     });
 
-    if (assignments.length === 0) {
+    // Filter planned days that actually apply to this specific date
+    const applicablePlannedDays = plannedDays.filter(plannedDay => 
+      plannedDay.isScheduledForDate(date)
+    );
+
+    if (applicablePlannedDays.length === 0) {
       return res.json({ success: true, message: 'No schedule to sync for this date' });
     }
 
     // Convert to time blocks format
     const timeBlocksMap = new Map();
     
-    assignments.forEach(assignment => {
-      if (assignment.templateId && assignment.templateId.timeBlocks) {
-        assignment.templateId.timeBlocks.forEach(timeBlock => {
+    applicablePlannedDays.forEach(plannedDay => {
+      if (plannedDay.templateId && plannedDay.templateId.timeBlocks) {
+        plannedDay.templateId.timeBlocks.forEach(timeBlock => {
           const key = `${timeBlock.startTime}-${timeBlock.endTime}`;
           
           const activity = {
