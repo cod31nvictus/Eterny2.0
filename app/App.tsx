@@ -22,6 +22,9 @@ function App(): JSX.Element {
       offlineAccess: true,
       hostedDomain: '',
       forceCodeForRefreshToken: true,
+      scopes: [
+        'https://www.googleapis.com/auth/calendar'
+      ]
     });
     console.log('✅ Google Sign-In initialized');
   }, []);

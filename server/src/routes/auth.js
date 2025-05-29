@@ -68,7 +68,13 @@ router.get('/status', (req, res) => {
 
 // Google OAuth login
 router.get('/google', 
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  passport.authenticate('google', { 
+    scope: [
+      'profile', 
+      'email', 
+      'https://www.googleapis.com/auth/calendar'
+    ] 
+  })
 );
 
 // Google OAuth callback

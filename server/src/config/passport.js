@@ -13,6 +13,10 @@ passport.use(new GoogleStrategy({
     let user = await User.findOne({ googleId: profile.id });
     
     if (user) {
+      // Update existing user with new tokens
+      user.googleAccessToken = accessToken;
+      if (refreshToken) user.googleRefreshToken = refreshToken;
+      await user.save();
       return done(null, user);
     }
     
@@ -21,7 +25,9 @@ passport.use(new GoogleStrategy({
       googleId: profile.id,
       email: profile.emails[0].value,
       name: profile.displayName,
-      profilePicture: profile.photos[0].value
+      profilePicture: profile.photos[0].value,
+      googleAccessToken: accessToken,
+      googleRefreshToken: refreshToken
     });
     
     await user.save();

@@ -203,23 +203,64 @@ class ApiService {
     },
 
     // Google Calendar sync methods
-    getSyncStatus: (): Promise<{ enabled: boolean; hasTokens: boolean }> =>
-      this.makeRequest<{ enabled: boolean; hasTokens: boolean }>('/calendar/sync/status'),
+    getSyncStatus: async (): Promise<{ connected: boolean; enabled: boolean; message: string }> => {
+      const token = await this.getAuthToken();
+      const response = await fetch('http://10.0.2.2:5001/sync/status', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
 
-    enableSync: (): Promise<{ success: boolean; message: string }> =>
-      this.makeRequest<{ success: boolean; message: string }>('/calendar/sync/enable', {
+    enableSync: async (): Promise<{ success: boolean; message: string }> => {
+      const token = await this.getAuthToken();
+      const response = await fetch('http://10.0.2.2:5001/sync/enable', {
         method: 'POST',
-      }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
 
-    disableSync: (): Promise<{ success: boolean; message: string }> =>
-      this.makeRequest<{ success: boolean; message: string }>('/calendar/sync/disable', {
+    disableSync: async (): Promise<{ success: boolean; message: string }> => {
+      const token = await this.getAuthToken();
+      const response = await fetch('http://10.0.2.2:5001/sync/disable', {
         method: 'POST',
-      }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
 
-    syncToday: (date: string): Promise<{ success: boolean; message: string; eventsCreated: number }> =>
-      this.makeRequest<{ success: boolean; message: string; eventsCreated: number }>(`/calendar/sync/${date}`, {
+    syncToday: async (date: string): Promise<{ success: boolean; message: string }> => {
+      const token = await this.getAuthToken();
+      const response = await fetch(`http://10.0.2.2:5001/sync/${date}`, {
         method: 'POST',
-      }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
   };
 
   // Profile API

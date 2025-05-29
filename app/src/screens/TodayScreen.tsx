@@ -50,7 +50,7 @@ const TodayScreen = () => {
   const [changePlanModalVisible, setChangePlanModalVisible] = useState(false);
   const [templatesList, setTemplatesList] = useState<DayTemplate[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<{ enabled: boolean; hasTokens: boolean } | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{ enabled: boolean; connected: boolean; message: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
 
   const formatTime = (time: string) => {
@@ -269,11 +269,17 @@ const TodayScreen = () => {
       setSyncStatus(status);
     } catch (error) {
       console.error('Error checking sync status:', error);
+      // Set default disconnected state if sync check fails
+      setSyncStatus({
+        connected: false,
+        enabled: false,
+        message: 'Google Calendar Not Connected'
+      });
     }
   };
 
   const handleSync = async () => {
-    if (!syncStatus?.hasTokens) {
+    if (!syncStatus?.connected) {
       Alert.alert(
         'Google Calendar Not Connected',
         'Please sign in with Google Calendar permissions to enable sync.',
@@ -440,7 +446,7 @@ const TodayScreen = () => {
             style={[
               styles.syncButton,
               syncing && styles.syncButtonLoading,
-              syncStatus?.enabled && styles.syncButtonEnabled
+              syncStatus?.connected && styles.syncButtonEnabled
             ]}
             onPress={handleSync}
             disabled={syncing}
@@ -448,9 +454,9 @@ const TodayScreen = () => {
             <Text style={[
               styles.syncIcon,
               syncing && styles.syncIconLoading,
-              syncStatus?.enabled && styles.syncIconEnabled
+              syncStatus?.connected && styles.syncIconEnabled
             ]}>
-              {syncing ? '⏳' : syncStatus?.enabled ? '✅' : '🔄'}
+              {syncing ? '⏳' : syncStatus?.connected ? '✅' : '🔄'}
             </Text>
           </TouchableOpacity>
         </View>

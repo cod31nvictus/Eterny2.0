@@ -35,6 +35,9 @@ const LoginScreen: React.FC = () => {
         offlineAccess: true,
         hostedDomain: '',
         forceCodeForRefreshToken: true,
+        scopes: [
+          'https://www.googleapis.com/auth/calendar'
+        ]
       });
       console.log('Google Sign-In configured');
 
@@ -63,6 +66,7 @@ const LoginScreen: React.FC = () => {
         body: JSON.stringify({
           idToken: tokens.idToken,
           accessToken: tokens.accessToken,
+          refreshToken: userInfo.serverAuthCode,
         }),
       });
 

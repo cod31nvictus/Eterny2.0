@@ -36,12 +36,15 @@ class GoogleCalendarService {
       // First, delete existing events for this date that were created by our app
       await this.deleteExistingEvents(calendar, date);
       
-      // Create new events for each time block
+      // Create separate events for each activity
       const events = [];
       for (const timeBlock of timeBlocks) {
-        const event = await this.createCalendarEvent(calendar, date, timeBlock);
-        if (event) {
-          events.push(event);
+        // Create one event per activity in the time block
+        for (const activity of timeBlock.activities) {
+          const event = await this.createCalendarEventForActivity(calendar, date, timeBlock, activity);
+          if (event) {
+            events.push(event);
+          }
         }
       }
       
@@ -83,6 +86,40 @@ class GoogleCalendarService {
     } catch (error) {
       console.error('Error deleting existing events:', error);
       // Don't throw here, just log the error
+    }
+  }
+
+  async createCalendarEventForActivity(calendar, date, timeBlock, activity) {
+    try {
+      const startDateTime = this.createDateTime(date, timeBlock.startTime);
+      const endDateTime = this.createDateTime(date, timeBlock.endTime);
+      
+      // Use custom name if available, otherwise use activity type name
+      const activityName = activity.blockName || activity.name;
+      
+      const event = {
+        summary: `[Eterny] ${activityName}`,
+        description: `Wellness activity: ${activity.name}${activity.wellnessTags ? `\nTags: ${activity.wellnessTags.join(', ')}` : ''}`,
+        start: {
+          dateTime: startDateTime,
+          timeZone: 'America/New_York', // You might want to make this configurable
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: 'America/New_York',
+        },
+        colorId: '2', // Green color for wellness activities
+      };
+
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        resource: event,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error creating calendar event for activity:', error);
+      return null;
     }
   }
 
@@ -163,6 +200,92 @@ class GoogleCalendarService {
     } catch (error) {
       console.error('Error getting calendar sync status:', error);
       return { enabled: false, hasTokens: false };
+    }
+  }
+
+  async syncDayToCalendar(userId, date) {
+    try {
+      const PlannedDay = require('../models/PlannedDay');
+      
+      // Get the schedule for this date using PlannedDay model
+      const plannedDays = await PlannedDay.find({
+        userId: userId,
+        isActive: true,
+        $or: [
+          // One-time events on this specific date
+          {
+            'recurrence.type': 'none',
+            startDate: { $lte: new Date(date) },
+            $or: [
+              { endDate: { $gte: new Date(date) } },
+              { endDate: null }
+            ]
+          },
+          // Recurring events that might include this date
+          {
+            'recurrence.type': { $ne: 'none' },
+            startDate: { $lte: new Date(date) },
+            $or: [
+              { 'recurrence.endDate': { $gte: new Date(date) } },
+              { 'recurrence.endDate': null }
+            ]
+          }
+        ]
+      }).populate({
+        path: 'templateId',
+        populate: {
+          path: 'timeBlocks.activityTypeId',
+          populate: {
+            path: 'wellnessTagIds'
+          }
+        }
+      });
+
+      // Filter planned days that actually apply to this specific date
+      const applicablePlannedDays = plannedDays.filter(plannedDay => 
+        plannedDay.isScheduledForDate(date)
+      );
+
+      if (applicablePlannedDays.length === 0) {
+        console.log(`No schedule to sync for ${date}`);
+        return [];
+      }
+
+      // Convert to individual activities format instead of grouping by time blocks
+      const activities = [];
+      
+      applicablePlannedDays.forEach(plannedDay => {
+        if (plannedDay.templateId && plannedDay.templateId.timeBlocks) {
+          plannedDay.templateId.timeBlocks.forEach(timeBlock => {
+            const activity = {
+              _id: timeBlock._id,
+              name: timeBlock.activityTypeId.name,
+              wellnessTags: timeBlock.activityTypeId.wellnessTagIds?.map(tag => tag.name) || [],
+              blockName: timeBlock.blockName,
+              startTime: timeBlock.startTime,
+              endTime: timeBlock.endTime
+            };
+            
+            activities.push(activity);
+          });
+        }
+      });
+
+      // Convert to time blocks format for the sync method
+      const timeBlocks = activities.map(activity => ({
+        startTime: activity.startTime,
+        endTime: activity.endTime,
+        activities: [activity]
+      }));
+
+      // Sync to Google Calendar
+      const events = await this.syncScheduleToCalendar(userId, date, timeBlocks);
+      
+      console.log(`Synced ${events.length} events to Google Calendar for ${date}`);
+      return events;
+    } catch (error) {
+      console.error('Error syncing day to calendar:', error);
+      throw error;
     }
   }
 }
