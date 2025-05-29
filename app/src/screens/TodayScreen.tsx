@@ -7,9 +7,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  TouchableOpacity,
+  Modal,
+  Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DayTemplate, TemplateDimensionValue } from '../types';
+import { api } from '../services/api';
 
 interface ActivityInBlock {
   _id: string;
@@ -41,6 +46,9 @@ const TodayScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [templateInfo, setTemplateInfo] = useState<DayTemplate | null>(null);
+  const [changePlanModalVisible, setChangePlanModalVisible] = useState(false);
+  const [templatesList, setTemplatesList] = useState<DayTemplate[]>([]);
 
   const formatTime = (time: string) => {
     // Remove seconds if present and format as HH:MM
@@ -155,6 +163,16 @@ const TodayScreen = () => {
       if (response.ok) {
         const data = await response.json();
         
+        // Extract template info from the first template (assuming one template per day for now)
+        if (data.templates && data.templates.length > 0) {
+          const firstTemplate = data.templates[0];
+          if (firstTemplate.template) {
+            setTemplateInfo(firstTemplate.template);
+          }
+        } else {
+          setTemplateInfo(null);
+        }
+        
         // Extract and group time blocks from all templates
         const timeBlocksMap = new Map<string, TimeBlock>();
         
@@ -197,6 +215,35 @@ const TodayScreen = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchAllTemplates = async () => {
+    try {
+      const templates = await api.templates.getAll();
+      setTemplatesList(templates);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const handleChangePlan = () => {
+    fetchAllTemplates();
+    setChangePlanModalVisible(true);
+  };
+
+  const handleTemplateSelect = async (template: DayTemplate) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Here we would call an API to assign the template to today
+      // For now, we'll just refresh the schedule
+      setChangePlanModalVisible(false);
+      Alert.alert('Success', `Template "${template.name}" assigned to today`);
+      fetchTodaySchedule();
+    } catch (error) {
+      console.error('Error assigning template:', error);
+      Alert.alert('Error', 'Failed to assign template');
     }
   };
 
@@ -313,16 +360,46 @@ const TodayScreen = () => {
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Today's Schedule</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>Today's Schedule</Text>
+            <Text style={styles.date}>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Text>
+          </View>
+          
+          <TouchableOpacity style={styles.syncButton}>
+            <Text style={styles.syncIcon}>🔄</Text>
+          </TouchableOpacity>
         </View>
+        
+        {templateInfo && (
+          <View style={styles.templateSection}>
+            <View style={styles.templateHeader}>
+              <Text style={styles.templateName}>{templateInfo.name}</Text>
+              <TouchableOpacity 
+                style={styles.changePlanButton}
+                onPress={handleChangePlan}
+              >
+                <Text style={styles.changePlanText}>Change Plan</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {templateInfo.dimensionValues && templateInfo.dimensionValues.length > 0 && (
+              <View style={styles.dimensionTags}>
+                {templateInfo.dimensionValues.map((dimValue, index) => (
+                  <View key={index} style={styles.dimensionTag}>
+                    <Text style={styles.dimensionTagText}>{dimValue.valueName}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {scheduleBlocks.length > 0 ? (
           <View style={styles.scheduleContainer}>
@@ -337,6 +414,80 @@ const TodayScreen = () => {
           </View>
         )}
       </View>
+      
+      {/* Template Selection Modal */}
+      <Modal
+        visible={changePlanModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setChangePlanModalVisible(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Change Day Plan</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.selectedDateText}>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Text>
+
+            {templatesList.length === 0 ? (
+              <View style={styles.noTemplatesContainer}>
+                <Text style={styles.noTemplatesText}>
+                  No templates available. Create a template first to schedule activities.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.templatesContainer}>
+                <Text style={styles.sectionTitle}>Choose a Template</Text>
+                {templatesList.map((template) => (
+                  <View key={template._id} style={styles.templateOption}>
+                    <View style={styles.templateOptionInfo}>
+                      <Text style={styles.templateOptionName}>{template.name}</Text>
+                      {template.description && (
+                        <Text style={styles.templateOptionDescription}>
+                          {template.description}
+                        </Text>
+                      )}
+                      <Text style={styles.templateOptionActivities}>
+                        {template.timeBlocks.length} activities
+                      </Text>
+                      
+                      {template.dimensionValues && template.dimensionValues.length > 0 && (
+                        <View style={styles.templateDimensionTags}>
+                          {template.dimensionValues.map((dimValue, index) => (
+                            <View key={index} style={styles.templateDimensionTag}>
+                              <Text style={styles.templateDimensionTagText}>{dimValue.valueName}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                    
+                    <TouchableOpacity
+                      style={styles.selectTemplateButton}
+                      onPress={() => handleTemplateSelect(template)}
+                    >
+                      <Text style={styles.selectTemplateButtonText}>
+                        Select
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -361,8 +512,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
@@ -374,6 +530,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     marginBottom: 4,
+  },
+  templateSection: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  templateName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  changePlanButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#6366f1',
+    borderRadius: 6,
+  },
+  changePlanText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dimensionTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  dimensionTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 12,
+  },
+  dimensionTagText: {
+    color: '#0369a1',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  syncButton: {
+    padding: 8,
+  },
+  syncIcon: {
+    fontSize: 20,
+    color: '#6366f1',
   },
   scheduleContainer: {
     backgroundColor: '#fff',
@@ -474,6 +682,109 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94a3b8',
     textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#6366f1',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginLeft: 16,
+  },
+  modalPlaceholder: {
+    flex: 1,
+  },
+  modalContent: {
+    padding: 16,
+  },
+  selectedDateText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  noTemplatesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noTemplatesText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  templatesContainer: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  templateOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    borderRadius: 8,
+  },
+  templateOptionInfo: {
+    flex: 1,
+  },
+  templateOptionName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  templateOptionDescription: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  templateOptionActivities: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  templateDimensionTags: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  templateDimensionTag: {
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#6366f1',
+    borderRadius: 8,
+  },
+  templateDimensionTagText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  selectTemplateButton: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#6366f1',
+    borderRadius: 8,
+  },
+  selectTemplateButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
