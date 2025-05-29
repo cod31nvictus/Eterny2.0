@@ -49,6 +49,7 @@ const TodayScreen = () => {
   const [templateInfo, setTemplateInfo] = useState<DayTemplate | null>(null);
   const [changePlanModalVisible, setChangePlanModalVisible] = useState(false);
   const [templatesList, setTemplatesList] = useState<DayTemplate[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const formatTime = (time: string) => {
     // Remove seconds if present and format as HH:MM
@@ -234,16 +235,29 @@ const TodayScreen = () => {
 
   const handleTemplateSelect = async (template: DayTemplate) => {
     try {
+      setSubmitting(true);
       const today = new Date().toISOString().split('T')[0];
       
-      // Here we would call an API to assign the template to today
-      // For now, we'll just refresh the schedule
-      setChangePlanModalVisible(false);
+      // Create a simple assignment for today only
+      const assignForm = {
+        templateId: template._id,
+        startDate: today,
+        recurrence: { type: 'none' as const, interval: 1 },
+      };
+
+      await api.calendar.assignTemplate(assignForm);
+      
       Alert.alert('Success', `Template "${template.name}" assigned to today`);
+      
+      // Update the template info and refresh the schedule
+      setTemplateInfo(template);
+      setChangePlanModalVisible(false);
       fetchTodaySchedule();
     } catch (error) {
       console.error('Error assigning template:', error);
       Alert.alert('Error', 'Failed to assign template');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -476,9 +490,10 @@ const TodayScreen = () => {
                     <TouchableOpacity
                       style={styles.selectTemplateButton}
                       onPress={() => handleTemplateSelect(template)}
+                      disabled={submitting}
                     >
                       <Text style={styles.selectTemplateButtonText}>
-                        Select
+                        Select for Today
                       </Text>
                     </TouchableOpacity>
                   </View>
