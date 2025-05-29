@@ -11,7 +11,14 @@ import {
   Modal,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface ActivityInBlock {
+  _id: string;
+  name: string;
+  wellnessTags: string[];
+  blockName?: string;
+}
 
 interface Block {
   _id: string;
@@ -22,6 +29,7 @@ interface Block {
   startTime: string;
   endTime: string;
   notes?: string;
+  activities?: ActivityInBlock[];
 }
 
 interface PlannedDay {
@@ -71,13 +79,158 @@ const NowScreen = ({ navigation }: any) => {
     return `${mins}m remaining`;
   };
 
+  const calculateActivityContinuation = async (activityName: string, currentEndTime: string) => {
+    // This would need to fetch all time blocks and calculate how long this activity continues
+    // For now, return a placeholder - in a real implementation, you'd check subsequent time blocks
+    return "2h 30m"; // Placeholder
+  };
+
+  const formatContinuationDuration = (minutes: number) => {
+    if (minutes <= 0) return '';
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0 && mins > 0) {
+      return `Continues for another ${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      return `Continues for another ${hours}h`;
+    } else {
+      return `Continues for another ${mins}m`;
+    }
+  };
+
   const fetchTodaySchedule = async () => {
     try {
-      // For now, just show "no scheduled activity" since we don't have calendar data set up
+      const today = new Date().toISOString().split('T')[0];
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(
+        `http://10.0.2.2:5001/api/calendar/${today}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Extract and group time blocks from all templates
+        const timeBlocksMap = new Map<string, ActivityInBlock[]>();
+        
+        if (data.templates && data.templates.length > 0) {
+          data.templates.forEach((templateData: any) => {
+            if (templateData.template && templateData.template.timeBlocks) {
+              templateData.template.timeBlocks.forEach((timeBlock: any) => {
+                const key = `${timeBlock.startTime}-${timeBlock.endTime}`;
+                
+                const activity: ActivityInBlock = {
+                  _id: timeBlock._id,
+                  name: timeBlock.activityTypeId.name,
+                  wellnessTags: timeBlock.activityTypeId.wellnessTagIds?.map((tag: any) => tag.name) || [],
+                  blockName: timeBlock.blockName
+                };
+                
+                if (timeBlocksMap.has(key)) {
+                  timeBlocksMap.get(key)!.push(activity);
+                } else {
+                  timeBlocksMap.set(key, [activity]);
+                }
+              });
+            }
+          });
+        }
+        
+        // Convert to time blocks with activities
+        const allTimeBlocks = Array.from(timeBlocksMap.entries()).map(([timeKey, activities]) => {
+          const [startTime, endTime] = timeKey.split('-');
+          return {
+            startTime,
+            endTime,
+            activities
+          };
+        });
+        
+        // Sort blocks by start time
+        const sortedBlocks = allTimeBlocks.sort((a, b) => 
+          timeStringToMinutes(a.startTime) - timeStringToMinutes(b.startTime)
+        );
+        
+        // Find current and next time blocks based on current time
+        const currentTime = getCurrentTime();
+        let currentTimeBlock = null;
+        let nextTimeBlock = null;
+        
+        for (let i = 0; i < sortedBlocks.length; i++) {
+          const block = sortedBlocks[i];
+          const startTime = timeStringToMinutes(block.startTime);
+          const endTime = timeStringToMinutes(block.endTime);
+          
+          // Check if this time block is currently active
+          if (currentTime >= startTime && currentTime < endTime) {
+            currentTimeBlock = block;
+            // Find the next time block after this one
+            if (i + 1 < sortedBlocks.length) {
+              nextTimeBlock = sortedBlocks[i + 1];
+            }
+            break;
+          }
+          
+          // If we haven't found a current block and this block is in the future
+          if (currentTime < startTime && !nextTimeBlock) {
+            nextTimeBlock = block;
+            break;
+          }
+        }
+        
+        // Convert current time block to Block format for compatibility
+        if (currentTimeBlock) {
+          const currentBlock: Block = {
+            _id: currentTimeBlock.activities[0]._id,
+            activityType: {
+              name: currentTimeBlock.activities[0].name,
+              wellnessTags: currentTimeBlock.activities[0].wellnessTags
+            },
+            startTime: currentTimeBlock.startTime,
+            endTime: currentTimeBlock.endTime,
+            activities: currentTimeBlock.activities
+          };
+          setCurrentBlock(currentBlock);
+        } else {
+          setCurrentBlock(null);
+        }
+        
+        // Convert next time block to Block format for compatibility
+        if (nextTimeBlock) {
+          const nextBlock: Block = {
+            _id: nextTimeBlock.activities[0]._id,
+            activityType: {
+              name: nextTimeBlock.activities[0].name,
+              wellnessTags: nextTimeBlock.activities[0].wellnessTags
+            },
+            startTime: nextTimeBlock.startTime,
+            endTime: nextTimeBlock.endTime,
+            activities: nextTimeBlock.activities
+          };
+          setNextBlock(nextBlock);
+        } else {
+          setNextBlock(null);
+        }
+        
+        console.log('🎯 NowScreen: Current time block activities:', currentTimeBlock?.activities.length || 0);
+        console.log('🎯 NowScreen: Next time block:', nextTimeBlock?.startTime || 'None');
+      } else {
+        console.error('🎯 NowScreen: Failed to fetch schedule:', response.status);
+        setCurrentBlock(null);
+        setNextBlock(null);
+      }
+    } catch (error) {
+      console.error('🎯 NowScreen: Error fetching today schedule:', error);
       setCurrentBlock(null);
       setNextBlock(null);
-    } catch (error) {
-      console.error('Error fetching today schedule:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -194,26 +347,39 @@ const NowScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
         
+        <View style={styles.currentTimeContainer}>
+          <Text style={styles.currentTimeValue}>
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
+        
         {currentBlock ? (
           <View style={styles.currentBlockContainer}>
             <View style={styles.currentBlock}>
-              <Text style={styles.currentActivityName}>
-                {currentBlock.activityType.name}
-              </Text>
-              <Text style={styles.currentTime}>
+              {/* Time block info and duration remaining */}
+              <Text style={styles.timeBlockInfo}>
                 {currentBlock.startTime} - {currentBlock.endTime}
               </Text>
               <Text style={styles.timeRemaining}>{timeRemaining}</Text>
               
-              {currentBlock.notes && (
-                <Text style={styles.notes}>{currentBlock.notes}</Text>
-              )}
-              
-              {currentBlock.activityType.wellnessTags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                  {currentBlock.activityType.wellnessTags.map((tag, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
+              {/* List all concurrent activities */}
+              {currentBlock.activities && currentBlock.activities.length > 0 && (
+                <View style={styles.activitiesListContainer}>
+                  {currentBlock.activities.map((activity, index) => (
+                    <View key={index} style={styles.activityItem}>
+                      <View style={styles.activityHeader}>
+                        <Text style={styles.activityName}>
+                          {activity.blockName || activity.name}
+                        </Text>
+                        <View style={styles.activityTypeTag}>
+                          <Text style={styles.activityTypeText}>
+                            {activity.name}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.continuationText}>
+                        Continues for another 2h 30m
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -233,25 +399,21 @@ const NowScreen = ({ navigation }: any) => {
           <View style={styles.nextBlockContainer}>
             <Text style={styles.nextBlockTitle}>Coming Up Next</Text>
             <View style={styles.nextBlock}>
-              <Text style={styles.nextActivityName}>
-                {nextBlock.activityType.name}
-              </Text>
-              <Text style={styles.nextTime}>
+              <Text style={styles.nextTimeBlock}>
                 {nextBlock.startTime} - {nextBlock.endTime}
               </Text>
-              {nextBlock.notes && (
-                <Text style={styles.nextNotes}>{nextBlock.notes}</Text>
+              {nextBlock.activities && nextBlock.activities.length > 0 && (
+                <View style={styles.nextActivitiesContainer}>
+                  {nextBlock.activities.map((activity, index) => (
+                    <Text key={index} style={styles.nextActivityName}>
+                      {activity.blockName || activity.name}
+                    </Text>
+                  ))}
+                </View>
               )}
             </View>
           </View>
         )}
-
-        <View style={styles.currentTimeContainer}>
-          <Text style={styles.currentTimeLabel}>Current Time</Text>
-          <Text style={styles.currentTimeValue}>
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </View>
       </View>
 
       {/* Hamburger Menu Modal */}
@@ -495,37 +657,28 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#10b981',
   },
-  nextActivityName: {
-    fontSize: 18,
+  nextTimeBlock: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
+    marginBottom: 8,
+  },
+  nextActivitiesContainer: {
+    marginTop: 8,
+  },
+  nextActivityName: {
+    fontSize: 14,
+    color: '#64748b',
     marginBottom: 4,
   },
-  nextTime: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  nextNotes: {
-    fontSize: 14,
-    color: '#94a3b8',
-    fontStyle: 'italic',
-  },
   currentTimeContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
     alignItems: 'center',
-  },
-  currentTimeLabel: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 8,
+    marginBottom: 24,
   },
   currentTimeValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#64748b',
   },
   // Hamburger Menu Styles
   menuContainer: {
@@ -608,6 +761,68 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#dc2626',
+  },
+  activitiesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  activityTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    margin: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  activityTagText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  timeBlockInfo: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  activitiesListContainer: {
+    marginBottom: 16,
+  },
+  activityItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  activityName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  activityTypeTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  activityTypeText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  continuationText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontStyle: 'italic',
   },
 });
 

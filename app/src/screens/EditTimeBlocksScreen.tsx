@@ -362,17 +362,20 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
           );
           
           if (activity) {
+            const newActivity = {
+              activityTypeId: typeof existingBlock.activityTypeId === 'string' 
+                ? existingBlock.activityTypeId 
+                : existingBlock.activityTypeId._id,
+              activityName: activity.name,
+              blockName: existingBlock.blockName || activity.name,
+            };
+            
+            // Check if this time block already has activities, if so append, otherwise create new array
+            const currentActivities = updatedBlocks[blockIndex].activities || [];
+            
             updatedBlocks[blockIndex] = {
               ...updatedBlocks[blockIndex],
-              activities: [
-                {
-                  activityTypeId: typeof existingBlock.activityTypeId === 'string' 
-                    ? existingBlock.activityTypeId 
-                    : existingBlock.activityTypeId._id,
-                  activityName: activity.name,
-                  blockName: existingBlock.blockName || activity.name,
-                },
-              ],
+              activities: [...currentActivities, newActivity],
               sameAsPrevious: false,
             };
           }
