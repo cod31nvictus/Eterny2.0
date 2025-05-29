@@ -332,6 +332,18 @@ const NowScreen = ({ navigation }: any) => {
               <Text style={styles.menuItemArrow}>›</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigateToScreen('Profile')}
+            >
+              <Text style={styles.menuItemIcon}>👤</Text>
+              <View style={styles.menuItemContent}>
+                <Text style={styles.menuItemTitle}>Profile</Text>
+                <Text style={styles.menuItemSubtitle}>Manage your personal information</Text>
+              </View>
+              <Text style={styles.menuItemArrow}>›</Text>
+            </TouchableOpacity>
+
             <View style={styles.menuSeparator} />
 
             <TouchableOpacity 

@@ -200,6 +200,47 @@ class ApiService {
     },
   };
 
+  // Profile API
+  profile = {
+    get: (): Promise<{
+      fullName: string;
+      dateOfBirth: string;
+      gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+    }> =>
+      this.makeRequest<{
+        fullName: string;
+        dateOfBirth: string;
+        gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+      }>('/profile'),
+
+    update: (data: {
+      fullName: string;
+      dateOfBirth: string;
+      gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+    }): Promise<{
+      fullName: string;
+      dateOfBirth: string;
+      gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+    }> =>
+      this.makeRequest<{
+        fullName: string;
+        dateOfBirth: string;
+        gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+      }>('/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    checkCompletion: (): Promise<{
+      hasProfile: boolean;
+      isComplete: boolean;
+    }> =>
+      this.makeRequest<{
+        hasProfile: boolean;
+        isComplete: boolean;
+      }>('/profile/completion'),
+  };
+
   // Summary API
   summary = {
     getWellnessSummary: (

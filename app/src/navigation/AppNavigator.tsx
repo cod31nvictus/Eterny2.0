@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -19,7 +19,10 @@ import ActivitiesScreen from '../screens/ActivitiesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
+import api from '../services/api';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -180,6 +183,11 @@ const MainStackNavigator = () => (
       component={DashboardScreen}
       options={{ title: 'Dashboard' }}
     />
+    <Stack.Screen 
+      name="Profile" 
+      component={ProfileScreen}
+      options={{ title: 'Profile' }}
+    />
   </Stack.Navigator>
 );
 
@@ -193,8 +201,35 @@ const AuthStack = () => (
 // Main App Content
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (isAuthenticated && !loading) {
+        try {
+          const completion = await api.profile.checkCompletion();
+          setNeedsProfileSetup(!completion.hasProfile || !completion.isComplete);
+        } catch (error) {
+          console.error('Error checking profile completion:', error);
+          // If there's an error, assume profile setup is needed
+          setNeedsProfileSetup(true);
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        setProfileLoading(false);
+      }
+    };
+
+    checkProfileCompletion();
+  }, [isAuthenticated, loading]);
+
+  const handleProfileSetupComplete = () => {
+    setNeedsProfileSetup(false);
+  };
+
+  if (loading || profileLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6366f1" />
@@ -204,6 +239,9 @@ const AppContent = () => {
   }
 
   if (isAuthenticated) {
+    if (needsProfileSetup) {
+      return <ProfileSetupScreen navigation={null} onComplete={handleProfileSetupComplete} />;
+    }
     return <MainStackNavigator />;
   } else {
     return <AuthStack />;

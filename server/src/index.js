@@ -52,6 +52,7 @@ app.use('/api/dimensions', require('./routes/dayDimensions'));
 app.use('/api/templates', require('./routes/dayTemplates'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/summary', require('./routes/summary'));
+app.use('/api/profile', require('./routes/profile'));
 
 // Test route (no rate limiting for health checks)
 app.get('/ping', (req, res) => {

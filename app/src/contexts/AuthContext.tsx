@@ -39,18 +39,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('token', token);
       console.log('💾 Token stored successfully');
       
-      // For demo purposes, create a mock user
-      const mockUser: User = {
-        _id: '68355927d3d4668f04255b90',
-        googleId: 'demo-google-id',
-        name: 'Demo User',
-        email: 'demo@eterny.com',
-        picture: 'https://via.placeholder.com/150/6366f1/ffffff?text=DU',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setUser(mockUser);
-      console.log('✅ Login successful, user set:', mockUser.name);
+      // Fetch real user data from backend
+      await fetchUserData();
+      console.log('✅ Login successful');
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -86,6 +77,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await checkAuthStatus();
   }, []);
 
+  const fetchUserData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.log('❌ No token found for user fetch');
+        return;
+      }
+
+      console.log('🔍 Fetching user data from backend...');
+      const response = await fetch('http://10.0.2.2:5001/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('✅ User data fetched successfully:', userData);
+        
+        const user: User = {
+          _id: userData.id,
+          googleId: userData.googleId || '',
+          name: userData.name,
+          email: userData.email,
+          picture: userData.profilePicture || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        setUser(user);
+        console.log('👤 User state updated with real data:', user.email);
+      } else {
+        console.log('❌ Failed to fetch user data, status:', response.status);
+        await AsyncStorage.removeItem('token');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user data:', error);
+      await AsyncStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+
   console.log('🔧 AuthProvider functions defined with useCallback:', {
     loginType: typeof login,
     logoutType: typeof logout,
@@ -109,26 +144,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔑 Current isAuthenticated:', !!user);
       
       if (token) {
-        // For demo purposes, create a mock user when token exists
-        const mockUser: User = {
-          _id: '68355927d3d4668f04255b90',
-          googleId: 'demo-google-id',
-          name: 'Demo User',
-          email: 'demo@eterny.com',
-          picture: 'https://via.placeholder.com/150/6366f1/ffffff?text=DU',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        if (!user || user.name !== mockUser.name) {
-          console.log('👤 Setting new user state...');
-          setUser(mockUser);
-        } else {
-          console.log('👤 User already set, no change needed');
-        }
-        
-        console.log('✅ User set:', mockUser.name);
-        console.log('✅ isAuthenticated should now be:', true);
+        // Fetch real user data from backend
+        await fetchUserData();
       } else {
         console.log('❌ No token found');
         if (user) {
