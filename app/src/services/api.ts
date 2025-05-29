@@ -249,11 +249,11 @@ class ApiService {
       options?: { includeDrains?: boolean }
     ): Promise<WellnessSummary> => {
       const params = new URLSearchParams({
-        startDate,
-        endDate,
-        ...(options?.includeDrains && { includeDrains: 'true' }),
+        start: startDate,
+        end: endDate,
+        ...(options?.includeDrains !== undefined && { includeDrains: options.includeDrains.toString() }),
       });
-      return this.makeRequest<WellnessSummary>(`/summary/wellness?${params}`);
+      return this.makeRequest<WellnessSummary>(`/summary?${params}`);
     },
 
     getQuickStats: (): Promise<QuickStats> =>
@@ -264,7 +264,11 @@ class ApiService {
       endDate: string,
       period: 'daily' | 'weekly'
     ): Promise<WellnessSummary[]> => {
-      const params = new URLSearchParams({ startDate, endDate, period });
+      const params = new URLSearchParams({ 
+        start: startDate, 
+        end: endDate, 
+        interval: period 
+      });
       return this.makeRequest<WellnessSummary[]>(`/summary/trends?${params}`);
     },
   };

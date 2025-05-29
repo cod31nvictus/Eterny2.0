@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { WellnessSummary, QuickStats, CategorySummary } from '../types';
+import { WellnessSummary, QuickStats, CategorySummary, ActivitySummary, DaySummary } from '../types';
 import api from '../services/api';
 
 const AnalyticsScreen: React.FC = () => {
@@ -24,8 +24,28 @@ const AnalyticsScreen: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // Calculate date range based on timeRange
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (timeRange) {
+        case 'week':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(endDate.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(endDate.getMonth() - 3);
+          break;
+      }
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
       const [summaryData, quickStatsData] = await Promise.all([
-        api.summary.getWellnessSummary(timeRange),
+        api.summary.getWellnessSummary(startDateStr, endDateStr),
         api.summary.getQuickStats(),
       ]);
       setSummary(summaryData);
@@ -132,101 +152,104 @@ const AnalyticsScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Wellness Summary */}
+        {/* Wellness Score */}
         {summary && (
-          <>
-            {/* Wellness Score */}
-            <View style={styles.wellnessScoreContainer}>
-              <Text style={styles.sectionTitle}>Wellness Score</Text>
-              <View style={styles.wellnessScoreCard}>
-                <Text style={[styles.wellnessScoreValue, { color: getScoreColor(summary.wellnessScore) }]}>
-                  {summary.wellnessScore > 0 ? '+' : ''}{summary.wellnessScore}
+          <View style={styles.wellnessScoreContainer}>
+            <Text style={styles.sectionTitle}>Wellness Score</Text>
+            <View style={styles.wellnessScoreCard}>
+              <Text style={[styles.wellnessScoreValue, { color: getScoreColor(summary.wellnessScore) }]}>
+                {summary.wellnessScore > 0 ? '+' : ''}{summary.wellnessScore}
+              </Text>
+              <Text style={styles.wellnessScoreLabel}>
+                {summary.wellnessScore > 0 ? 'Positive' : summary.wellnessScore < 0 ? 'Needs Improvement' : 'Neutral'}
+              </Text>
+              <View style={styles.wellnessBreakdown}>
+                <Text style={styles.breakdownText}>
+                  Total: {formatMinutes(summary.totalMinutes)} over {summary.totalDays} days
                 </Text>
-                <Text style={styles.wellnessScoreLabel}>
-                  {summary.wellnessScore > 0 ? 'Positive' : summary.wellnessScore < 0 ? 'Needs Improvement' : 'Neutral'}
-                </Text>
-                <View style={styles.wellnessBreakdown}>
-                  <Text style={styles.breakdownText}>
-                    {formatMinutes(summary.totalWellnessMinutes)} wellness - {formatMinutes(summary.totalDrainMinutes)} drain
-                  </Text>
-                </View>
               </View>
             </View>
+          </View>
+        )}
 
-            {/* Category Breakdown */}
-            <View style={styles.categoryContainer}>
-              <Text style={styles.sectionTitle}>Category Breakdown</Text>
-              <View style={styles.categoriesGrid}>
-                {summary.categoryBreakdown.map((category: CategorySummary) => (
-                  <View key={category.categoryId} style={styles.categoryCard}>
-                    <View style={styles.categoryHeader}>
-                      <View style={[styles.categoryColorDot, { backgroundColor: category.color }]} />
-                      <Text style={styles.categoryName}>{category.name}</Text>
-                      <Text style={styles.categoryType}>{category.type}</Text>
-                    </View>
-                    
-                    <Text style={styles.categoryTime}>{formatMinutes(category.totalMinutes)}</Text>
-                    
-                    <View style={styles.progressBarContainer}>
-                      <View style={styles.progressBarBackground}>
-                        <View 
-                          style={[
-                            styles.progressBarFill,
-                            { 
-                              width: `${getProgressPercentage(category.totalMinutes, summary.totalMinutes)}%`,
-                              backgroundColor: category.color 
-                            }
-                          ]} 
-                        />
-                      </View>
-                      <Text style={styles.progressPercentage}>
-                        {Math.round(getProgressPercentage(category.totalMinutes, summary.totalMinutes))}%
-                      </Text>
-                    </View>
+        {/* Category Breakdown */}
+        {summary && (
+          <View style={styles.categoryContainer}>
+            <Text style={styles.sectionTitle}>Category Breakdown</Text>
+            <View style={styles.categoriesGrid}>
+              {Object.values(summary.byCategory).map((category: CategorySummary) => (
+                <View key={category.name} style={styles.categoryCard}>
+                  <View style={styles.categoryHeader}>
+                    <View style={[styles.categoryColorDot, { backgroundColor: category.color }]} />
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <Text style={styles.categoryType}>{category.type}</Text>
                   </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Top Activities */}
-            <View style={styles.activitiesContainer}>
-              <Text style={styles.sectionTitle}>Top Activities</Text>
-              <View style={styles.activitiesList}>
-                {summary.topActivities.slice(0, 5).map((activity, index) => (
-                  <View key={activity.activityId} style={styles.activityItem}>
-                    <View style={styles.activityRank}>
-                      <Text style={styles.activityRankText}>{index + 1}</Text>
+                  
+                  <Text style={styles.categoryTime}>{formatMinutes(category.totalMinutes)}</Text>
+                  
+                  <View style={styles.progressBarContainer}>
+                    <View style={styles.progressBarBackground}>
+                      <View 
+                        style={[
+                          styles.progressBarFill,
+                          { 
+                            width: `${getProgressPercentage(category.totalMinutes, summary.totalMinutes)}%`,
+                            backgroundColor: category.color 
+                          }
+                        ]} 
+                      />
                     </View>
-                    <View style={styles.activityInfo}>
-                      <Text style={styles.activityName}>{activity.name}</Text>
-                      <Text style={styles.activityTime}>{formatMinutes(activity.totalMinutes)}</Text>
-                    </View>
-                    <Text style={styles.activityCount}>{activity.count} times</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Daily Trends */}
-            <View style={styles.trendsContainer}>
-              <Text style={styles.sectionTitle}>Daily Trends</Text>
-              <View style={styles.trendsList}>
-                {summary.dailyTrends.slice(-7).map((day, index) => (
-                  <View key={day.date} style={styles.trendItem}>
-                    <Text style={styles.trendDate}>
-                      {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    <Text style={styles.progressPercentage}>
+                      {Math.round(getProgressPercentage(category.totalMinutes, summary.totalMinutes))}%
                     </Text>
-                    <Text style={styles.trendTime}>{formatMinutes(day.totalMinutes)}</Text>
-                    <View style={[styles.trendScore, { backgroundColor: getScoreColor(day.wellnessScore) }]}>
-                      <Text style={styles.trendScoreText}>
-                        {day.wellnessScore > 0 ? '+' : ''}{day.wellnessScore}
-                      </Text>
-                    </View>
                   </View>
-                ))}
-              </View>
+                </View>
+              ))}
             </View>
-          </>
+          </View>
+        )}
+
+        {/* Top Activities */}
+        {summary && (
+          <View style={styles.activitiesContainer}>
+            <Text style={styles.sectionTitle}>Top Activities</Text>
+            <View style={styles.activitiesList}>
+              {Object.values(summary.byActivity).slice(0, 5).map((activity: ActivitySummary, index: number) => (
+                <View key={activity.name} style={styles.activityItem}>
+                  <View style={styles.activityRank}>
+                    <Text style={styles.activityRankText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityName}>{activity.name}</Text>
+                    <Text style={styles.activityTime}>{formatMinutes(activity.totalMinutes)}</Text>
+                  </View>
+                  <Text style={styles.activityCount}>{activity.daysActive} days</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Daily Trends */}
+        {summary && (
+          <View style={styles.trendsContainer}>
+            <Text style={styles.sectionTitle}>Daily Trends</Text>
+            <View style={styles.trendsList}>
+              {summary.byDay.slice(-7).map((day: DaySummary, index: number) => (
+                <View key={day.date} style={styles.trendItem}>
+                  <Text style={styles.trendDate}>
+                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </Text>
+                  <Text style={styles.trendTime}>{formatMinutes(day.totalMinutes)}</Text>
+                  <View style={[styles.trendScore, { backgroundColor: getScoreColor(day.wellnessScore) }]}>
+                    <Text style={styles.trendScoreText}>
+                      {day.wellnessScore > 0 ? '+' : ''}{day.wellnessScore}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         )}
       </ScrollView>
     </View>

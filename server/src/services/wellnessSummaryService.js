@@ -31,10 +31,15 @@ const getWellnessSummary = async (userId, startDate, endDate, options = {}) => {
     const plannedDays = await PlannedDay.find({
       userId,
       isActive: true,
-      $or: [
+      $and: [
         { startDate: { $lte: endDate } },
-        { endDate: null },
-        { endDate: { $gte: startDate } }
+        {
+          $or: [
+            { endDate: null },
+            { endDate: { $exists: false } },
+            { endDate: { $gte: startDate } }
+          ]
+        }
       ]
     })
     .populate({

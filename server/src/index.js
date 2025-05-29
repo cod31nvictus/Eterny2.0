@@ -7,6 +7,7 @@ const connectDB = require('./config/database');
 const { 
   apiLimiter, 
   authLimiter, 
+  userInfoLimiter,
   corsOptions, 
   securityHeaders, 
   errorHandler, 
@@ -44,7 +45,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes with rate limiting
-app.use('/auth', authLimiter, require('./routes/auth'));
+app.use('/auth', userInfoLimiter, require('./routes/auth'));
 app.use('/api', apiLimiter); // Apply rate limiting to all API routes
 app.use('/api/categories', require('./routes/wellnessCategories'));
 app.use('/api/activities', require('./routes/activityTypes'));
@@ -53,6 +54,10 @@ app.use('/api/templates', require('./routes/dayTemplates'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/summary', require('./routes/summary'));
 app.use('/api/profile', require('./routes/profile'));
+
+// Backward compatibility routes
+app.use('/quick-stats', apiLimiter, require('./routes/summary'));
+app.use('/completion', apiLimiter, require('./routes/profile'));
 
 // Test route (no rate limiting for health checks)
 app.get('/ping', (req, res) => {

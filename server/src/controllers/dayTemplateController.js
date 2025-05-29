@@ -40,10 +40,12 @@ const getDayTemplate = async (req, res) => {
 // Create a new day template
 const createDayTemplate = async (req, res) => {
   try {
+    console.log('Creating day template with data:', JSON.stringify(req.body, null, 2));
     const { name, description, dimensionValues, timeBlocks, tags } = req.body;
     
     // Validate required fields
     if (!name) {
+      console.error('Validation failed: Name is required');
       return res.status(400).json({ error: 'Name is required' });
     }
     
@@ -54,31 +56,42 @@ const createDayTemplate = async (req, res) => {
     });
     
     if (existingTemplate) {
+      console.error('Validation failed: Template with this name already exists');
       return res.status(400).json({ error: 'Template with this name already exists' });
     }
     
     // Validate activity types in time blocks
     if (timeBlocks && timeBlocks.length > 0) {
+      console.log('Validating time blocks:', timeBlocks.length, 'blocks');
       const activityIds = timeBlocks.map(block => block.activityTypeId);
+      console.log('Activity IDs to validate:', activityIds);
+      
       const userActivities = await ActivityType.find({
         _id: { $in: activityIds },
         userId: req.user._id
       });
       
+      console.log('Found user activities:', userActivities.map(a => ({ id: a._id, name: a.name })));
+      
       if (userActivities.length !== activityIds.length) {
+        console.error('Validation failed: Invalid activity type IDs. Expected:', activityIds, 'Found:', userActivities.map(a => a._id));
         return res.status(400).json({ error: 'Invalid activity type IDs' });
       }
     }
     
     // Validate dimension values
     if (dimensionValues && dimensionValues.length > 0) {
+      console.log('Validating dimension values:', dimensionValues);
       const dimensionIds = dimensionValues.map(dv => dv.dimensionId);
       const userDimensions = await DayDimension.find({
         _id: { $in: dimensionIds },
         userId: req.user._id
       });
       
+      console.log('Found user dimensions:', userDimensions.map(d => ({ id: d._id, name: d.name })));
+      
       if (userDimensions.length !== dimensionIds.length) {
+        console.error('Validation failed: Invalid dimension IDs. Expected:', dimensionIds, 'Found:', userDimensions.map(d => d._id));
         return res.status(400).json({ error: 'Invalid dimension IDs' });
       }
       
@@ -88,6 +101,7 @@ const createDayTemplate = async (req, res) => {
         const valueExists = dimension.values.some(v => v._id.toString() === dimValue.valueId);
         
         if (!valueExists) {
+          console.error('Validation failed: Invalid value ID for dimension', dimension.name, 'Value ID:', dimValue.valueId);
           return res.status(400).json({ error: `Invalid value ID for dimension ${dimension.name}` });
         }
       }
@@ -110,13 +124,17 @@ const createDayTemplate = async (req, res) => {
       isDefault: false
     });
     
+    console.log('Attempting to save template:', template.toObject());
     await template.save();
+    console.log('Template saved successfully with ID:', template._id);
     
     // Populate before returning
     await template.populate('timeBlocks.activityTypeId', 'name');
     
+    console.log('Template creation completed successfully');
     res.status(201).json(template);
   } catch (error) {
+    console.error('Error creating day template:', error);
     res.status(500).json({ error: 'Failed to create day template' });
   }
 };
@@ -150,6 +168,7 @@ const updateDayTemplate = async (req, res) => {
       });
       
       if (userActivities.length !== activityIds.length) {
+        console.error('Invalid activity type IDs. Expected:', activityIds, 'Found:', userActivities.map(a => a._id));
         return res.status(400).json({ error: 'Invalid activity type IDs' });
       }
     }
@@ -161,6 +180,7 @@ const updateDayTemplate = async (req, res) => {
     if (timeBlocks) {
       template.timeBlocks = timeBlocks.map((block, index) => ({
         activityTypeId: block.activityTypeId,
+        blockName: block.blockName?.trim(),
         startTime: block.startTime,
         endTime: block.endTime,
         notes: block.notes?.trim(),
@@ -174,6 +194,7 @@ const updateDayTemplate = async (req, res) => {
     
     res.json(template);
   } catch (error) {
+    console.error('Error updating day template:', error);
     res.status(500).json({ error: 'Failed to update day template' });
   }
 };

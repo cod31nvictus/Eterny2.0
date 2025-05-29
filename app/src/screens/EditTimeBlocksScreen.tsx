@@ -9,9 +9,20 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  FlatList,
 } from 'react-native';
 import { DayTemplate, ActivityType, TimeBlock } from '../types';
 import { api } from '../services/api';
+
+interface TimeBlockRow {
+  id: number;
+  startTime: string;
+  endTime: string;
+  activityTypeId?: string;
+  activityName?: string;
+  blockName?: string;
+  sameAsPrevious: boolean;
+}
 
 interface EditTimeBlocksScreenProps {
   navigation: any;
@@ -23,11 +34,16 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
   const [activities, setActivities] = useState<ActivityType[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [timeBlocks, setTimeBlocks] = useState<Omit<TimeBlock, '_id'>[]>(template.timeBlocks || []);
-  const [showActivityPicker, setShowActivityPicker] = useState<number | null>(null);
+  const [timeBlocks, setTimeBlocks] = useState<TimeBlockRow[]>([]);
+  const [showActivityModal, setShowActivityModal] = useState<{ index: number; activityName: string } | null>(null);
+  const [showStartTimeModal, setShowStartTimeModal] = useState(false);
+  const [dayStartTime, setDayStartTime] = useState('06:00');
+  const [tempStartTime, setTempStartTime] = useState('06:00');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchActivities();
+    showStartTimeSelector();
   }, []);
 
   const fetchActivities = async () => {
@@ -43,63 +59,126 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
     }
   };
 
-  const getActivityName = (activityTypeId: string | ActivityType) => {
-    const activityId = typeof activityTypeId === 'string' ? activityTypeId : activityTypeId._id;
-    const activity = activities.find(act => act._id === activityId);
-    return activity?.name || 'Select Activity';
+  const showStartTimeSelector = () => {
+    setShowStartTimeModal(true);
   };
 
-  const addTimeBlock = () => {
-    if (activities.length === 0) {
-      Alert.alert('Error', 'You need to create activity types first');
-      return;
-    }
+  const generateTimeBlocks = (startTime: string) => {
+    const blocks: TimeBlockRow[] = [];
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    let currentHour = startHour;
+    let currentMinute = startMinute;
 
-    const defaultActivity = activities[0];
-    const newBlock: Omit<TimeBlock, '_id'> = {
-      activityTypeId: defaultActivity._id,
-      blockName: defaultActivity.name, // Default to activity name
-      startTime: '09:00',
-      endTime: '10:00',
-      notes: '',
-      order: timeBlocks.length,
-    };
-    setTimeBlocks([...timeBlocks, newBlock]);
-  };
-
-  const updateTimeBlock = (index: number, field: keyof TimeBlock, value: string | number) => {
-    const updatedBlocks = [...timeBlocks];
-    updatedBlocks[index] = { ...updatedBlocks[index], [field]: value };
-    
-    // If activity changes, update block name to match activity name (but keep it editable)
-    if (field === 'activityTypeId') {
-      const activityId = typeof value === 'string' ? value : String(value);
-      const activity = activities.find(act => act._id === activityId);
-      if (activity) {
-        updatedBlocks[index].blockName = activity.name;
+    // Generate 96 blocks (24 hours * 4 blocks per hour = 96 15-minute blocks)
+    for (let i = 0; i < 96; i++) {
+      const startTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+      
+      // Calculate end time (15 minutes later)
+      let endHour = currentHour;
+      let endMinute = currentMinute + 15;
+      
+      if (endMinute >= 60) {
+        endMinute -= 60;
+        endHour += 1;
       }
+      
+      if (endHour >= 24) {
+        endHour -= 24;
+      }
+      
+      const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+      
+      blocks.push({
+        id: i,
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        sameAsPrevious: false,
+      });
+
+      // Update current time for next iteration
+      currentHour = endHour;
+      currentMinute = endMinute;
+    }
+
+    setTimeBlocks(blocks);
+  };
+
+  const handleStartTimeConfirm = () => {
+    setDayStartTime(tempStartTime);
+    generateTimeBlocks(tempStartTime);
+    setShowStartTimeModal(false);
+  };
+
+  const filteredActivities = activities.filter(activity =>
+    activity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (activity.description && activity.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const handleActivitySelect = (blockIndex: number, activity: ActivityType, customName?: string) => {
+    const updatedBlocks = [...timeBlocks];
+    updatedBlocks[blockIndex] = {
+      ...updatedBlocks[blockIndex],
+      activityTypeId: activity._id,
+      activityName: activity.name,
+      blockName: customName || activity.name,
+      sameAsPrevious: false,
+    };
+    setTimeBlocks(updatedBlocks);
+    setShowActivityModal(null);
+    setSearchQuery(''); // Clear search when modal closes
+  };
+
+  const handleSameAsPrevious = (blockIndex: number, checked: boolean) => {
+    const updatedBlocks = [...timeBlocks];
+    
+    if (checked && blockIndex > 0) {
+      const previousBlock = updatedBlocks[blockIndex - 1];
+      if (previousBlock.activityTypeId) {
+        updatedBlocks[blockIndex] = {
+          ...updatedBlocks[blockIndex],
+          activityTypeId: previousBlock.activityTypeId,
+          activityName: previousBlock.activityName,
+          blockName: previousBlock.blockName,
+          sameAsPrevious: true,
+        };
+      }
+    } else {
+      updatedBlocks[blockIndex] = {
+        ...updatedBlocks[blockIndex],
+        activityTypeId: undefined,
+        activityName: undefined,
+        blockName: undefined,
+        sameAsPrevious: false,
+      };
     }
     
     setTimeBlocks(updatedBlocks);
   };
 
-  const removeTimeBlock = (index: number) => {
-    const updatedBlocks = timeBlocks.filter((_, i) => i !== index);
-    setTimeBlocks(updatedBlocks);
-  };
-
-  const handleActivitySelect = (index: number, activityId: string) => {
-    updateTimeBlock(index, 'activityTypeId', activityId);
-    setShowActivityPicker(null);
+  const canUseSameAsPrevious = (blockIndex: number): boolean => {
+    if (blockIndex === 0) return false;
+    return !!timeBlocks[blockIndex - 1]?.activityTypeId;
   };
 
   const handleSave = async () => {
     try {
       setSubmitting(true);
 
+      // Convert TimeBlockRow[] to TimeBlock[]
+      const convertedTimeBlocks: Omit<TimeBlock, '_id'>[] = timeBlocks
+        .filter(block => block.activityTypeId) // Only include blocks with activities
+        .map((block, index) => ({
+          activityTypeId: block.activityTypeId!,
+          blockName: block.blockName || block.activityName || '',
+          startTime: block.startTime,
+          endTime: block.endTime,
+          notes: '',
+          order: index,
+        }));
+
       const updatedTemplate = {
         ...template,
-        timeBlocks,
+        timeBlocks: convertedTimeBlocks,
       };
 
       await api.templates.update(template._id, updatedTemplate);
@@ -111,7 +190,6 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
           {
             text: 'OK',
             onPress: () => {
-              // Navigate back to templates list
               navigation.navigate('Templates');
             }
           }
@@ -127,28 +205,52 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
   };
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
-  const calculateDuration = (startTime: string, endTime: string) => {
-    const [startHours, startMinutes] = startTime.split(':').map(Number);
-    const [endHours, endMinutes] = endTime.split(':').map(Number);
+  const renderTimeBlockRow = ({ item, index }: { item: TimeBlockRow; index: number }) => {
+    const canUsePrevious = canUseSameAsPrevious(index);
     
-    const startTotalMinutes = startHours * 60 + startMinutes;
-    const endTotalMinutes = endHours * 60 + endMinutes;
-    const durationMinutes = endTotalMinutes - startTotalMinutes;
-    
-    const hours = Math.floor(durationMinutes / 60);
-    const minutes = durationMinutes % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes > 0 ? `${minutes}m` : ''}`;
-    }
-    return `${minutes}m`;
+    return (
+      <View style={styles.tableRow}>
+        <View style={styles.timeColumn}>
+          <Text style={styles.timeText}>{item.startTime}</Text>
+        </View>
+        <View style={styles.timeColumn}>
+          <Text style={styles.timeText}>{item.endTime}</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.activityColumn}
+          onPress={() => setShowActivityModal({ 
+            index, 
+            activityName: item.activityName || '' 
+          })}
+        >
+          <Text style={[
+            styles.activityText,
+            !item.activityName && styles.activityTextPlaceholder
+          ]}>
+            {item.activityName || 'Tap to select'}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.checkboxColumn}>
+          {canUsePrevious && (
+            <TouchableOpacity
+              style={[
+                styles.checkbox,
+                item.sameAsPrevious && styles.checkboxChecked
+              ]}
+              onPress={() => handleSameAsPrevious(index, !item.sameAsPrevious)}
+            >
+              {item.sameAsPrevious && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
@@ -168,13 +270,12 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{template.name}</Text>
-          <View style={styles.dimensionTags}>
-            {template.dimensionValues.map((dv: any, index: number) => (
-              <View key={index} style={styles.dimensionTag}>
-                <Text style={styles.dimensionTagText}>{dv.valueName}</Text>
-              </View>
-            ))}
-          </View>
+          <TouchableOpacity 
+            style={styles.startTimeButton}
+            onPress={showStartTimeSelector}
+          >
+            <Text style={styles.startTimeText}>Start: {formatTime(dayStartTime)}</Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           onPress={handleSave}
@@ -189,156 +290,157 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.timeBlocksHeader}>
-          <Text style={styles.sectionTitle}>Time Blocks</Text>
-          <TouchableOpacity
-            style={styles.addTimeBlockButton}
-            onPress={addTimeBlock}
-            disabled={activities.length === 0}
-          >
-            <Text style={styles.addTimeBlockText}>+ Add Block</Text>
-          </TouchableOpacity>
+      <View style={styles.tableContainer}>
+        <View style={styles.tableHeader}>
+          <View style={styles.timeColumn}>
+            <Text style={styles.headerText}>Start</Text>
+          </View>
+          <View style={styles.timeColumn}>
+            <Text style={styles.headerText}>End</Text>
+          </View>
+          <View style={styles.activityColumn}>
+            <Text style={styles.headerText}>Activity</Text>
+          </View>
+          <View style={styles.checkboxColumn}>
+            <Text style={styles.headerText}>Same as Previous</Text>
+          </View>
         </View>
 
-        {activities.length === 0 ? (
-          <View style={styles.noActivitiesContainer}>
-            <Text style={styles.noActivitiesText}>
-              You need to create activity types first before adding time blocks.
-            </Text>
-            <TouchableOpacity
-              style={styles.createActivitiesButton}
-              onPress={() => navigation.navigate('Activities')}
-            >
-              <Text style={styles.createActivitiesButtonText}>Create Activities</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.timeBlocksContainer}>
-            {timeBlocks.map((block, index) => (
-              <View key={index} style={styles.timeBlockForm}>
-                <View style={styles.timeBlockFormHeader}>
-                  <Text style={styles.timeBlockFormTitle}>Block {index + 1}</Text>
-                  <TouchableOpacity
-                    onPress={() => removeTimeBlock(index)}
-                    style={styles.removeBlockButton}
-                  >
-                    <Text style={styles.removeBlockText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
+        <FlatList
+          data={timeBlocks}
+          renderItem={renderTimeBlockRow}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.tableContent}
+          showsVerticalScrollIndicator={true}
+        />
+      </View>
 
-                <View style={styles.formRow}>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>Activity</Text>
-                    <TouchableOpacity 
-                      style={styles.pickerContainer}
-                      onPress={() => setShowActivityPicker(index)}
-                    >
-                      <Text style={styles.pickerText}>
-                        {getActivityName(block.activityTypeId)}
-                      </Text>
-                      <Text style={styles.pickerArrow}>▼</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>Block Name</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      value={block.blockName || ''}
-                      onChangeText={(text) => updateTimeBlock(index, 'blockName', text)}
-                      placeholder="Enter custom block name"
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>Start Time</Text>
-                    <TextInput
-                      style={styles.timeInput}
-                      value={block.startTime}
-                      onChangeText={(text) => updateTimeBlock(index, 'startTime', text)}
-                      placeholder="09:00"
-                    />
-                  </View>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>End Time</Text>
-                    <TextInput
-                      style={styles.timeInput}
-                      value={block.endTime}
-                      onChangeText={(text) => updateTimeBlock(index, 'endTime', text)}
-                      placeholder="10:00"
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>Duration</Text>
-                    <Text style={styles.durationText}>
-                      {calculateDuration(block.startTime, block.endTime)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={styles.formColumn}>
-                    <Text style={styles.formSubLabel}>Notes (Optional)</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      value={block.notes}
-                      onChangeText={(text) => updateTimeBlock(index, 'notes', text)}
-                      placeholder="Add notes..."
-                    />
-                  </View>
-                </View>
-              </View>
-            ))}
-            
-            {timeBlocks.length === 0 && (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No time blocks added yet</Text>
-                <Text style={styles.emptySubtext}>
-                  Click "Add Block" to start building your daily schedule
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Activity Picker Modal */}
+      {/* Start Time Modal */}
       <Modal
-        visible={showActivityPicker !== null}
+        visible={showStartTimeModal}
         animationType="slide"
         presentationStyle="pageSheet"
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowActivityPicker(null)}>
+            <Text style={styles.modalTitle}>Set Day Start Time</Text>
+          </View>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalDescription}>
+              What time do you want to start your day?
+            </Text>
+            <TextInput
+              style={styles.timeInput}
+              value={tempStartTime}
+              onChangeText={setTempStartTime}
+              placeholder="06:00"
+              keyboardType="numeric"
+            />
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={handleStartTimeConfirm}
+            >
+              <Text style={styles.confirmButtonText}>Generate Schedule</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Activity Selection Modal */}
+      <Modal
+        visible={showActivityModal !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => {
+              setShowActivityModal(null);
+              setSearchQuery('');
+            }}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Select Activity</Text>
             <View style={styles.modalPlaceholder} />
           </View>
 
-          <ScrollView style={styles.modalContent}>
-            {activities.map((activity) => (
-              <TouchableOpacity
-                key={activity._id}
-                style={styles.activityOption}
-                onPress={() => showActivityPicker !== null && handleActivitySelect(showActivityPicker, activity._id)}
-              >
-                <Text style={styles.activityOptionText}>{activity.name}</Text>
-                {activity.description && (
-                  <Text style={styles.activityOptionDescription}>{activity.description}</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalDescription}>
+              Choose an activity type and optionally customize the name:
+            </Text>
+            
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search activities..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearSearchButton}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {filteredActivities.length === 0 && searchQuery.length > 0 && (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>
+                  No activities found matching "{searchQuery}"
+                </Text>
+              </View>
+            )}
+            
+            <ScrollView style={styles.activitiesScroll}>
+              {filteredActivities.map((activity) => (
+                <View key={activity._id} style={styles.activitySection}>
+                  <TouchableOpacity
+                    style={styles.activityOption}
+                    onPress={() => showActivityModal && handleActivitySelect(showActivityModal.index, activity)}
+                  >
+                    <Text style={styles.activityOptionText}>{activity.name}</Text>
+                    {activity.description && (
+                      <Text style={styles.activityOptionDescription}>{activity.description}</Text>
+                    )}
+                  </TouchableOpacity>
+                  
+                  <View style={styles.customNameSection}>
+                    <Text style={styles.customNameLabel}>Custom Name (Optional):</Text>
+                    <View style={styles.customNameRow}>
+                      <TextInput
+                        style={styles.customNameInput}
+                        placeholder={activity.name}
+                        onSubmitEditing={(event) => {
+                          const customName = event.nativeEvent.text.trim();
+                          if (showActivityModal) {
+                            handleActivitySelect(showActivityModal.index, activity, customName || activity.name);
+                          }
+                        }}
+                        returnKeyType="done"
+                      />
+                      <TouchableOpacity
+                        style={styles.useCustomButton}
+                        onPress={() => {
+                          if (showActivityModal) {
+                            // Get the current value from the input - for now just use activity name
+                            handleActivitySelect(showActivityModal.index, activity, activity.name);
+                          }
+                        }}
+                      >
+                        <Text style={styles.useCustomButtonText}>Use</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </View>
@@ -385,21 +487,17 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 4,
   },
-  dimensionTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 4,
+  startTimeButton: {
+    backgroundColor: '#f0f9ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#0ea5e9',
   },
-  dimensionTag: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  dimensionTagText: {
-    fontSize: 10,
-    color: '#64748b',
+  startTimeText: {
+    fontSize: 12,
+    color: '#0369a1',
     fontWeight: '500',
   },
   saveText: {
@@ -410,164 +508,84 @@ const styles = StyleSheet.create({
   saveTextDisabled: {
     color: '#94a3b8',
   },
-  content: {
+  tableContainer: {
     flex: 1,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  timeBlocksHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  addTimeBlockButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addTimeBlockText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  noActivitiesContainer: {
     backgroundColor: '#fff',
-    padding: 24,
+    margin: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  noActivitiesText: {
-    fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  createActivitiesButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 20,
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
     paddingVertical: 12,
-    borderRadius: 8,
-  },
-  createActivitiesButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  timeBlocksContainer: {
-    gap: 16,
-  },
-  timeBlockForm: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  timeBlockFormHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  timeBlockFormTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  removeBlockButton: {
-    backgroundColor: '#fef2f2',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
   },
-  removeBlockText: {
-    color: '#ef4444',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  formColumn: {
+  tableContent: {
     flex: 1,
   },
-  formSubLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
-    marginBottom: 6,
-  },
-  formInput: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    fontSize: 16,
-  },
-  pickerContainer: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  tableRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    minHeight: 44,
     alignItems: 'center',
   },
-  pickerText: {
-    fontSize: 16,
+  timeColumn: {
+    width: 60,
+    alignItems: 'center',
+  },
+  activityColumn: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
+  checkboxColumn: {
+    width: 80,
+    alignItems: 'center',
+  },
+  headerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  activityText: {
+    fontSize: 14,
     color: '#1e293b',
   },
-  pickerArrow: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  timeInput: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    fontSize: 16,
-  },
-  durationText: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '500',
-    padding: 12,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    backgroundColor: '#fff',
-    padding: 32,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
+  activityTextPlaceholder: {
     color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 20,
+    fontStyle: 'italic',
   },
-  // Modal styles
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -595,12 +613,49 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
+    padding: 16,
   },
-  activityOption: {
+  modalDescription: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  timeInput: {
     backgroundColor: '#fff',
     padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  confirmButton: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  activitiesScroll: {
+    flex: 1,
+  },
+  activitySection: {
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  activityOption: {
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#f1f5f9',
   },
   activityOptionText: {
     fontSize: 16,
@@ -610,6 +665,69 @@ const styles = StyleSheet.create({
   },
   activityOptionDescription: {
     fontSize: 14,
+    color: '#64748b',
+  },
+  customNameSection: {
+    padding: 16,
+  },
+  customNameLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  customNameRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customNameInput: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    fontSize: 14,
+  },
+  useCustomButton: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+  },
+  useCustomButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    fontSize: 14,
+  },
+  clearSearchButton: {
+    padding: 8,
+  },
+  clearSearchText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 16,
     color: '#64748b',
   },
 });

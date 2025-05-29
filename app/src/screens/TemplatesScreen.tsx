@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
 import { DayTemplate, ActivityType, DayDimension } from '../types';
 
@@ -27,6 +27,14 @@ const TemplatesScreen: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Add focus listener to refresh data when returning to this screen
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🎯 TemplatesScreen focused, refreshing data...');
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {

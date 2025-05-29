@@ -13,18 +13,25 @@ const createRateLimiter = (windowMs, max, message) => {
   });
 };
 
-// General API rate limiting
+// General API rate limiting (increased for development)
 const apiLimiter = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  100, // limit each IP to 100 requests per windowMs
+  200, // limit each IP to 200 requests per windowMs (increased for development)
   'Too many requests from this IP, please try again later.'
 );
 
 // Strict rate limiting for auth endpoints (relaxed for development)
 const authLimiter = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  50, // limit each IP to 50 auth requests per windowMs (increased for development)
+  100, // limit each IP to 100 auth requests per windowMs (increased for development)
   'Too many authentication attempts, please try again later.'
+);
+
+// Very relaxed rate limiting for user info endpoints
+const userInfoLimiter = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  300, // limit each IP to 300 requests per windowMs
+  'Too many user info requests, please try again later.'
 );
 
 // CORS configuration (relaxed for development)
@@ -121,6 +128,7 @@ const requestLogger = (req, res, next) => {
 module.exports = {
   apiLimiter,
   authLimiter,
+  userInfoLimiter,
   corsOptions,
   securityHeaders,
   errorHandler,

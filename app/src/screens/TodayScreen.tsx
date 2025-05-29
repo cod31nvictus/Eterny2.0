@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Block {
   _id: string;
@@ -106,11 +107,14 @@ const TodayScreen = () => {
   const fetchTodaySchedule = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      const token = await AsyncStorage.getItem('token');
+      
       const response = await fetch(
-        `http://localhost:5001/api/calendar?start=${today}&end=${today}`,
+        `http://10.0.2.2:5001/api/calendar?start=${today}&end=${today}`,
         {
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         }
       );
@@ -265,9 +269,6 @@ const TodayScreen = () => {
               day: 'numeric'
             })}
           </Text>
-          <Text style={styles.currentTime}>
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
         </View>
 
         {todayBlocks.length > 0 ? (
@@ -320,11 +321,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     marginBottom: 4,
-  },
-  currentTime: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#6366f1',
   },
   timeline: {
     flex: 1,
