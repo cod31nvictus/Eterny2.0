@@ -161,6 +161,9 @@ class ApiService {
         `/calendar?start=${startDate}&end=${endDate}`
       ),
 
+    getDaySchedule: (date: string): Promise<CalendarResponse> =>
+      this.makeRequest<CalendarResponse>(`/calendar/${date}`),
+
     assignTemplate: (data: AssignTemplateForm): Promise<void> =>
       this.makeRequest<void>('/calendar/assign-template', {
         method: 'POST',
@@ -198,6 +201,25 @@ class ApiService {
         body: JSON.stringify(options),
       });
     },
+
+    // Google Calendar sync methods
+    getSyncStatus: (): Promise<{ enabled: boolean; hasTokens: boolean }> =>
+      this.makeRequest<{ enabled: boolean; hasTokens: boolean }>('/calendar/sync/status'),
+
+    enableSync: (): Promise<{ success: boolean; message: string }> =>
+      this.makeRequest<{ success: boolean; message: string }>('/calendar/sync/enable', {
+        method: 'POST',
+      }),
+
+    disableSync: (): Promise<{ success: boolean; message: string }> =>
+      this.makeRequest<{ success: boolean; message: string }>('/calendar/sync/disable', {
+        method: 'POST',
+      }),
+
+    syncToday: (date: string): Promise<{ success: boolean; message: string; eventsCreated: number }> =>
+      this.makeRequest<{ success: boolean; message: string; eventsCreated: number }>(`/calendar/sync/${date}`, {
+        method: 'POST',
+      }),
   };
 
   // Profile API

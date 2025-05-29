@@ -50,6 +50,8 @@ const TodayScreen = () => {
   const [changePlanModalVisible, setChangePlanModalVisible] = useState(false);
   const [templatesList, setTemplatesList] = useState<DayTemplate[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ enabled: boolean; hasTokens: boolean } | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const formatTime = (time: string) => {
     // Remove seconds if present and format as HH:MM
@@ -261,8 +263,56 @@ const TodayScreen = () => {
     }
   };
 
+  const checkSyncStatus = async () => {
+    try {
+      const status = await api.calendar.getSyncStatus();
+      setSyncStatus(status);
+    } catch (error) {
+      console.error('Error checking sync status:', error);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!syncStatus?.hasTokens) {
+      Alert.alert(
+        'Google Calendar Not Connected',
+        'Please sign in with Google Calendar permissions to enable sync.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (!syncStatus.enabled) {
+        await api.calendar.enableSync();
+        setSyncStatus(prev => prev ? { ...prev, enabled: true } : null);
+      }
+      
+      const result = await api.calendar.syncToday(today);
+      
+      Alert.alert(
+        'Sync Complete',
+        result.message,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error syncing to calendar:', error);
+      Alert.alert(
+        'Sync Failed',
+        'Failed to sync with Google Calendar. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     fetchTodaySchedule();
+    checkSyncStatus();
   }, []);
 
   useEffect(() => {
@@ -386,8 +436,22 @@ const TodayScreen = () => {
             </Text>
           </View>
           
-          <TouchableOpacity style={styles.syncButton}>
-            <Text style={styles.syncIcon}>🔄</Text>
+          <TouchableOpacity 
+            style={[
+              styles.syncButton,
+              syncing && styles.syncButtonLoading,
+              syncStatus?.enabled && styles.syncButtonEnabled
+            ]}
+            onPress={handleSync}
+            disabled={syncing}
+          >
+            <Text style={[
+              styles.syncIcon,
+              syncing && styles.syncIconLoading,
+              syncStatus?.enabled && styles.syncIconEnabled
+            ]}>
+              {syncing ? '⏳' : syncStatus?.enabled ? '✅' : '🔄'}
+            </Text>
           </TouchableOpacity>
         </View>
         
@@ -593,10 +657,24 @@ const styles = StyleSheet.create({
   },
   syncButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
   },
   syncIcon: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#6366f1',
+  },
+  syncButtonLoading: {
+    backgroundColor: '#fef3c7',
+  },
+  syncButtonEnabled: {
+    backgroundColor: '#dcfce7',
+  },
+  syncIconLoading: {
+    color: '#f59e0b',
+  },
+  syncIconEnabled: {
+    color: '#16a34a',
   },
   scheduleContainer: {
     backgroundColor: '#fff',

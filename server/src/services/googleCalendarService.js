@@ -29,106 +29,140 @@ class GoogleCalendarService {
     }
   }
 
-  async syncTemplateToGoogleCalendar(userId, template, date) {
+  async syncScheduleToCalendar(userId, date, timeBlocks) {
     try {
       const calendar = await this.getCalendarClient(userId);
       
-      // Create events for each time block in the template
-      const events = [];
+      // First, delete existing events for this date that were created by our app
+      await this.deleteExistingEvents(calendar, date);
       
-      for (const timeBlock of template.timeBlocks) {
-        const startDateTime = new Date(`${date}T${timeBlock.startTime}:00`);
-        const endDateTime = new Date(`${date}T${timeBlock.endTime}:00`);
-        
-        const event = {
-          summary: timeBlock.blockName || timeBlock.activityTypeId.name,
-          description: `Eterny Activity: ${timeBlock.activityTypeId.name}${timeBlock.notes ? '\n\nNotes: ' + timeBlock.notes : ''}`,
-          start: {
-            dateTime: startDateTime.toISOString(),
-            timeZone: 'UTC',
-          },
-          end: {
-            dateTime: endDateTime.toISOString(),
-            timeZone: 'UTC',
-          },
-          source: {
-            title: 'Eterny',
-            url: 'https://eterny.app',
-          },
-        };
-
-        const response = await calendar.events.insert({
-          calendarId: 'primary',
-          resource: event,
-        });
-
-        events.push(response.data);
+      // Create new events for each time block
+      const events = [];
+      for (const timeBlock of timeBlocks) {
+        const event = await this.createCalendarEvent(calendar, date, timeBlock);
+        if (event) {
+          events.push(event);
+        }
       }
-
+      
       return events;
     } catch (error) {
-      console.error('Error syncing to Google Calendar:', error);
+      console.error('Error syncing schedule to calendar:', error);
       throw error;
     }
   }
 
-  async deleteEternyEventsForDate(userId, date) {
+  async deleteExistingEvents(calendar, date) {
     try {
-      const calendar = await this.getCalendarClient(userId);
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
       
-      const startOfDay = new Date(`${date}T00:00:00Z`);
-      const endOfDay = new Date(`${date}T23:59:59Z`);
-      
-      // Get all events for the day
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
       const response = await calendar.events.list({
         calendarId: 'primary',
         timeMin: startOfDay.toISOString(),
         timeMax: endOfDay.toISOString(),
-        q: 'Eterny Activity',
+        q: '[Eterny]', // Search for events with our app identifier
         singleEvents: true,
         orderBy: 'startTime',
       });
 
       const events = response.data.items || [];
       
-      // Delete events that were created by Eterny
+      // Delete each event
       for (const event of events) {
-        if (event.description && event.description.includes('Eterny Activity:')) {
-          await calendar.events.delete({
-            calendarId: 'primary',
-            eventId: event.id,
-          });
-        }
+        await calendar.events.delete({
+          calendarId: 'primary',
+          eventId: event.id,
+        });
       }
-
-      return events.length;
+      
+      console.log(`Deleted ${events.length} existing Eterny events for ${date}`);
     } catch (error) {
-      console.error('Error deleting Eterny events:', error);
+      console.error('Error deleting existing events:', error);
+      // Don't throw here, just log the error
+    }
+  }
+
+  async createCalendarEvent(calendar, date, timeBlock) {
+    try {
+      const startDateTime = this.createDateTime(date, timeBlock.startTime);
+      const endDateTime = this.createDateTime(date, timeBlock.endTime);
+      
+      // Create activity names list
+      const activityNames = timeBlock.activities.map(activity => 
+        activity.blockName || activity.name
+      ).join(', ');
+      
+      const event = {
+        summary: `[Eterny] ${activityNames}`,
+        description: `Wellness activities: ${timeBlock.activities.map(a => a.name).join(', ')}`,
+        start: {
+          dateTime: startDateTime,
+          timeZone: 'America/New_York', // You might want to make this configurable
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: 'America/New_York',
+        },
+        colorId: '2', // Green color for wellness activities
+      };
+
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        resource: event,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      return null;
+    }
+  }
+
+  createDateTime(date, time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    const dateTime = new Date(date);
+    dateTime.setHours(hours, minutes, 0, 0);
+    return dateTime.toISOString();
+  }
+
+  async enableCalendarSync(userId) {
+    try {
+      await User.findByIdAndUpdate(userId, {
+        googleCalendarEnabled: true
+      });
+      return { success: true, message: 'Google Calendar sync enabled' };
+    } catch (error) {
+      console.error('Error enabling calendar sync:', error);
       throw error;
     }
   }
 
-  async syncDaySchedule(userId, date, templates) {
+  async disableCalendarSync(userId) {
     try {
-      // First, delete existing Eterny events for this date
-      await this.deleteEternyEventsForDate(userId, date);
-      
-      // Then, create new events for all templates
-      const allEvents = [];
-      
-      for (const templateData of templates) {
-        const events = await this.syncTemplateToGoogleCalendar(userId, templateData.template, date);
-        allEvents.push(...events);
-      }
+      await User.findByIdAndUpdate(userId, {
+        googleCalendarEnabled: false
+      });
+      return { success: true, message: 'Google Calendar sync disabled' };
+    } catch (error) {
+      console.error('Error disabling calendar sync:', error);
+      throw error;
+    }
+  }
 
+  async getCalendarSyncStatus(userId) {
+    try {
+      const user = await User.findById(userId);
       return {
-        success: true,
-        eventsCreated: allEvents.length,
-        events: allEvents,
+        enabled: user?.googleCalendarEnabled || false,
+        hasTokens: !!(user?.googleAccessToken && user?.googleRefreshToken)
       };
     } catch (error) {
-      console.error('Error syncing day schedule:', error);
-      throw error;
+      console.error('Error getting calendar sync status:', error);
+      return { enabled: false, hasTokens: false };
     }
   }
 }

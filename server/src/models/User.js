@@ -18,6 +18,16 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String
   },
+  googleAccessToken: {
+    type: String
+  },
+  googleRefreshToken: {
+    type: String
+  },
+  googleCalendarEnabled: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

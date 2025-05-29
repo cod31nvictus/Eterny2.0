@@ -93,7 +93,7 @@ router.get('/google/callback',
 // Google OAuth mobile endpoint for React Native
 router.post('/google/mobile', async (req, res) => {
   try {
-    const { idToken, accessToken } = req.body;
+    const { idToken, accessToken, refreshToken } = req.body;
     
     if (!idToken) {
       return res.status(400).json({ error: 'ID token is required' });
@@ -121,10 +121,12 @@ router.post('/google/mobile', async (req, res) => {
       user = await User.findOne({ email: email });
       
       if (user) {
-        // Update existing user with Google ID
+        // Update existing user with Google ID and tokens
         user.googleId = googleId;
         user.name = name;
         user.profilePicture = picture;
+        if (accessToken) user.googleAccessToken = accessToken;
+        if (refreshToken) user.googleRefreshToken = refreshToken;
         await user.save();
       } else {
         // Create new user
@@ -132,7 +134,9 @@ router.post('/google/mobile', async (req, res) => {
           googleId: googleId,
           email: email,
           name: name,
-          profilePicture: picture
+          profilePicture: picture,
+          googleAccessToken: accessToken,
+          googleRefreshToken: refreshToken
         });
         
         await user.save();
@@ -146,9 +150,11 @@ router.post('/google/mobile', async (req, res) => {
         console.log('New user created and seeded with default data:', user._id);
       }
     } else {
-      // Update existing user info
+      // Update existing user info and tokens
       user.name = name;
       user.profilePicture = picture;
+      if (accessToken) user.googleAccessToken = accessToken;
+      if (refreshToken) user.googleRefreshToken = refreshToken;
       await user.save();
     }
 
