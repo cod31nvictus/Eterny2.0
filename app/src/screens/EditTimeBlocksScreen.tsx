@@ -306,7 +306,7 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
             <View style={styles.activitiesContainer}>
               {activities.map((activity, activityIndex) => (
                 <View key={activityIndex} style={styles.activityRow}>
-                  <Text style={styles.activityText}>{activity.activityName}</Text>
+                  <Text style={styles.activityText}>{activity.blockName}</Text>
                   <View style={styles.activityActions}>
                     <TouchableOpacity
                       style={styles.removeActivityButton}

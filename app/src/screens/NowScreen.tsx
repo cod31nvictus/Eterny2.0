@@ -50,6 +50,7 @@ const NowScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [allTimeBlocks, setAllTimeBlocks] = useState<any[]>([]);
 
   const getCurrentTime = () => {
     const now = new Date();
@@ -79,10 +80,52 @@ const NowScreen = ({ navigation }: any) => {
     return `${mins}m remaining`;
   };
 
-  const calculateActivityContinuation = async (activityName: string, currentEndTime: string) => {
-    // This would need to fetch all time blocks and calculate how long this activity continues
-    // For now, return a placeholder - in a real implementation, you'd check subsequent time blocks
-    return "2h 30m"; // Placeholder
+  const calculateActivityContinuation = (activityName: string, currentEndTime: string, allTimeBlocks: any[]) => {
+    const currentTime = getCurrentTime();
+    const currentEndMinutes = timeStringToMinutes(currentEndTime);
+    
+    // Calculate remaining time in current block
+    let remainingMinutes = currentEndMinutes - currentTime;
+    
+    // Find subsequent blocks with the same activity
+    const sortedBlocks = allTimeBlocks.sort((a, b) => 
+      timeStringToMinutes(a.startTime) - timeStringToMinutes(b.startTime)
+    );
+    
+    // Find current block index
+    const currentBlockIndex = sortedBlocks.findIndex(block => {
+      const startTime = timeStringToMinutes(block.startTime);
+      const endTime = timeStringToMinutes(block.endTime);
+      return currentTime >= startTime && currentTime < endTime;
+    });
+    
+    if (currentBlockIndex === -1) return remainingMinutes;
+    
+    // Look for continuous blocks with the same activity
+    for (let i = currentBlockIndex + 1; i < sortedBlocks.length; i++) {
+      const nextBlock = sortedBlocks[i];
+      const prevBlock = sortedBlocks[i - 1];
+      
+      // Check if this block starts immediately after the previous one (no gap)
+      if (nextBlock.startTime !== prevBlock.endTime) {
+        break; // There's a gap, so activity doesn't continue
+      }
+      
+      // Check if this block has the same activity
+      const hasMatchingActivity = nextBlock.activities.some((activity: any) => 
+        activity.blockName === activityName || activity.name === activityName
+      );
+      
+      if (!hasMatchingActivity) {
+        break; // Activity doesn't continue in this block
+      }
+      
+      // Add this block's duration
+      const blockDuration = timeStringToMinutes(nextBlock.endTime) - timeStringToMinutes(nextBlock.startTime);
+      remainingMinutes += blockDuration;
+    }
+    
+    return remainingMinutes;
   };
 
   const formatContinuationDuration = (minutes: number) => {
@@ -153,6 +196,9 @@ const NowScreen = ({ navigation }: any) => {
             activities
           };
         });
+        
+        // Store all time blocks for duration calculation
+        setAllTimeBlocks(allTimeBlocks);
         
         // Sort blocks by start time
         const sortedBlocks = allTimeBlocks.sort((a, b) => 
@@ -378,7 +424,13 @@ const NowScreen = ({ navigation }: any) => {
                         </View>
                       </View>
                       <Text style={styles.continuationText}>
-                        Continues for another 2h 30m
+                        {formatContinuationDuration(
+                          calculateActivityContinuation(
+                            activity.blockName || activity.name,
+                            currentBlock.endTime,
+                            allTimeBlocks
+                          )
+                        )}
                       </Text>
                     </View>
                   ))}
