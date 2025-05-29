@@ -73,8 +73,8 @@ const getPlannedDays = async (req, res) => {
     const endDate = new Date(end);
     
     // Validate date range
-    if (startDate >= endDate) {
-      return res.status(400).json({ error: 'Start date must be before end date' });
+    if (startDate > endDate) {
+      return res.status(400).json({ error: 'Start date must be before or equal to end date' });
     }
     
     // Get all active planned days that could potentially overlap with the date range

@@ -110,7 +110,7 @@ const TodayScreen = () => {
       const token = await AsyncStorage.getItem('token');
       
       const response = await fetch(
-        `http://10.0.2.2:5001/api/calendar?start=${today}&end=${today}`,
+        `http://10.0.2.2:5001/api/calendar/${today}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -121,18 +121,36 @@ const TodayScreen = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const todayPlan: PlannedDay | undefined = data.find((plan: PlannedDay) => 
-          plan.date === today
-        );
-
-        if (todayPlan && todayPlan.template.blocks) {
-          const sortedBlocks = todayPlan.template.blocks.sort((a, b) => 
-            timeStringToMinutes(a.startTime) - timeStringToMinutes(b.startTime)
-          );
-          setTodayBlocks(sortedBlocks);
-        } else {
-          setTodayBlocks([]);
+        
+        // Extract blocks from all templates for today
+        const allBlocks: Block[] = [];
+        
+        if (data.templates && data.templates.length > 0) {
+          data.templates.forEach((templateData: any) => {
+            if (templateData.template && templateData.template.timeBlocks) {
+              templateData.template.timeBlocks.forEach((timeBlock: any) => {
+                allBlocks.push({
+                  _id: timeBlock._id,
+                  activityType: {
+                    name: timeBlock.activityTypeId.name,
+                    wellnessTags: timeBlock.activityTypeId.wellnessTagIds?.map((tag: any) => tag.name) || []
+                  },
+                  startTime: timeBlock.startTime,
+                  endTime: timeBlock.endTime,
+                  notes: timeBlock.notes,
+                  blockName: timeBlock.blockName
+                });
+              });
+            }
+          });
         }
+        
+        // Sort blocks by start time
+        const sortedBlocks = allBlocks.sort((a, b) => 
+          timeStringToMinutes(a.startTime) - timeStringToMinutes(b.startTime)
+        );
+        
+        setTodayBlocks(sortedBlocks);
       }
     } catch (error) {
       console.error('Error fetching today schedule:', error);
