@@ -41,7 +41,7 @@ const getDayTemplate = async (req, res) => {
 const createDayTemplate = async (req, res) => {
   try {
     console.log('Creating day template with data:', JSON.stringify(req.body, null, 2));
-    const { name, description, dimensionValues, timeBlocks, tags } = req.body;
+    const { name, description, startTime, dimensionValues, timeBlocks, tags } = req.body;
     
     // Validate required fields
     if (!name) {
@@ -63,19 +63,27 @@ const createDayTemplate = async (req, res) => {
     // Validate activity types in time blocks
     if (timeBlocks && timeBlocks.length > 0) {
       console.log('Validating time blocks:', timeBlocks.length, 'blocks');
-      const activityIds = timeBlocks.map(block => block.activityTypeId);
-      console.log('Activity IDs to validate:', activityIds);
+      const activityIds = timeBlocks.map(block => block.activityTypeId).filter(id => id); // Filter out null/undefined
       
-      const userActivities = await ActivityType.find({
-        _id: { $in: activityIds },
-        userId: req.user._id
-      });
-      
-      console.log('Found user activities:', userActivities.map(a => ({ id: a._id, name: a.name })));
-      
-      if (userActivities.length !== activityIds.length) {
-        console.error('Validation failed: Invalid activity type IDs. Expected:', activityIds, 'Found:', userActivities.map(a => a._id));
-        return res.status(400).json({ error: 'Invalid activity type IDs' });
+      if (activityIds.length > 0) {
+        // Get unique activity IDs to avoid duplicate queries
+        const uniqueActivityIds = [...new Set(activityIds.map(id => id.toString()))];
+        
+        const userActivities = await ActivityType.find({
+          _id: { $in: uniqueActivityIds },
+          userId: req.user._id
+        });
+        
+        // Convert ObjectIds to strings for comparison
+        const foundActivityIds = userActivities.map(a => a._id.toString());
+        
+        // Check if all unique activity IDs were found
+        const missingActivityIds = uniqueActivityIds.filter(id => !foundActivityIds.includes(id));
+        
+        if (missingActivityIds.length > 0) {
+          console.error('Invalid activity type IDs. Missing:', missingActivityIds);
+          return res.status(400).json({ error: 'Invalid activity type IDs' });
+        }
       }
     }
     
@@ -110,6 +118,7 @@ const createDayTemplate = async (req, res) => {
     const template = new DayTemplate({
       name: name.trim(),
       description: description?.trim(),
+      startTime: startTime || "06:00",
       dimensionValues: dimensionValues || [],
       timeBlocks: timeBlocks ? timeBlocks.map((block, index) => ({
         activityTypeId: block.activityTypeId,
@@ -143,7 +152,7 @@ const createDayTemplate = async (req, res) => {
 const updateDayTemplate = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, dimensionValues, timeBlocks, tags } = req.body;
+    const { name, description, startTime, dimensionValues, timeBlocks, tags } = req.body;
     
     const template = await DayTemplate.findOne({
       _id: id,
@@ -161,21 +170,34 @@ const updateDayTemplate = async (req, res) => {
     
     // Validate activity types if provided
     if (timeBlocks && timeBlocks.length > 0) {
-      const activityIds = timeBlocks.map(block => block.activityTypeId);
-      const userActivities = await ActivityType.find({
-        _id: { $in: activityIds },
-        userId: req.user._id
-      });
+      const activityIds = timeBlocks.map(block => block.activityTypeId).filter(id => id); // Filter out null/undefined
       
-      if (userActivities.length !== activityIds.length) {
-        console.error('Invalid activity type IDs. Expected:', activityIds, 'Found:', userActivities.map(a => a._id));
-        return res.status(400).json({ error: 'Invalid activity type IDs' });
+      if (activityIds.length > 0) {
+        // Get unique activity IDs to avoid duplicate queries
+        const uniqueActivityIds = [...new Set(activityIds.map(id => id.toString()))];
+        
+        const userActivities = await ActivityType.find({
+          _id: { $in: uniqueActivityIds },
+          userId: req.user._id
+        });
+        
+        // Convert ObjectIds to strings for comparison
+        const foundActivityIds = userActivities.map(a => a._id.toString());
+        
+        // Check if all unique activity IDs were found
+        const missingActivityIds = uniqueActivityIds.filter(id => !foundActivityIds.includes(id));
+        
+        if (missingActivityIds.length > 0) {
+          console.error('Invalid activity type IDs. Missing:', missingActivityIds);
+          return res.status(400).json({ error: 'Invalid activity type IDs' });
+        }
       }
     }
     
     // Update fields
     if (name) template.name = name.trim();
     if (description !== undefined) template.description = description?.trim();
+    if (startTime) template.startTime = startTime;
     if (dimensionValues) template.dimensionValues = dimensionValues;
     if (timeBlocks) {
       template.timeBlocks = timeBlocks.map((block, index) => ({

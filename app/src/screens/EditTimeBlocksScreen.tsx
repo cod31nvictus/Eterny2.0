@@ -14,13 +14,17 @@ import {
 import { DayTemplate, ActivityType, TimeBlock } from '../types';
 import { api } from '../services/api';
 
+interface ActivityInBlock {
+  activityTypeId: string;
+  activityName: string;
+  blockName: string;
+}
+
 interface TimeBlockRow {
   id: number;
   startTime: string;
   endTime: string;
-  activityTypeId?: string;
-  activityName?: string;
-  blockName?: string;
+  activities: ActivityInBlock[];
   sameAsPrevious: boolean;
 }
 
@@ -43,7 +47,21 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
 
   useEffect(() => {
     fetchActivities();
-    showStartTimeSelector();
+    
+    // Initialize start time from template if it exists
+    const templateStartTime = template.startTime || '06:00';
+    setDayStartTime(templateStartTime);
+    setTempStartTime(templateStartTime);
+    
+    // If this is an existing template (has an ID), skip start time selector and show full schedule
+    if (template._id) {
+      // Existing template - generate full schedule first
+      generateTimeBlocks(templateStartTime);
+      // Activities will be mapped after they're loaded in fetchActivities
+    } else {
+      // New template - show start time selector first
+      showStartTimeSelector();
+    }
   }, []);
 
   const fetchActivities = async () => {
@@ -51,6 +69,14 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
       setLoading(true);
       const activitiesData = await api.activities.getAll();
       setActivities(activitiesData);
+      
+      // After activities are loaded, map existing activities if this is an existing template
+      if (template._id && template.timeBlocks && template.timeBlocks.length > 0) {
+        // Use setTimeout to ensure state is updated
+        setTimeout(() => {
+          mapExistingActivities(activitiesData);
+        }, 100);
+      }
     } catch (error) {
       console.error('Failed to fetch activities:', error);
       Alert.alert('Error', 'Failed to load activities');
@@ -92,6 +118,7 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
         id: i,
         startTime: startTimeStr,
         endTime: endTimeStr,
+        activities: [],
         sameAsPrevious: false,
       });
 
@@ -116,16 +143,51 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
 
   const handleActivitySelect = (blockIndex: number, activity: ActivityType, customName?: string) => {
     const updatedBlocks = [...timeBlocks];
-    updatedBlocks[blockIndex] = {
-      ...updatedBlocks[blockIndex],
-      activityTypeId: activity._id,
-      activityName: activity.name,
-      blockName: customName || activity.name,
-      sameAsPrevious: false,
-    };
-    setTimeBlocks(updatedBlocks);
-    setShowActivityModal(null);
-    setSearchQuery(''); // Clear search when modal closes
+    const currentBlock = updatedBlocks[blockIndex];
+    
+    if (currentBlock) {
+      const newActivity: ActivityInBlock = {
+        activityTypeId: activity._id,
+        activityName: activity.name,
+        blockName: customName || activity.name,
+      };
+      
+      updatedBlocks[blockIndex] = {
+        ...currentBlock,
+        activities: [...(currentBlock.activities || []), newActivity],
+        sameAsPrevious: false,
+      };
+      setTimeBlocks(updatedBlocks);
+      setShowActivityModal(null);
+      setSearchQuery(''); // Clear search when modal closes
+    }
+  };
+
+  const handleRemoveActivity = (blockIndex: number, activityIndex: number) => {
+    const updatedBlocks = [...timeBlocks];
+    const currentBlock = updatedBlocks[blockIndex];
+    
+    if (currentBlock && currentBlock.activities) {
+      updatedBlocks[blockIndex] = {
+        ...currentBlock,
+        activities: currentBlock.activities.filter((_, index) => index !== activityIndex),
+        sameAsPrevious: false,
+      };
+      setTimeBlocks(updatedBlocks);
+    }
+  };
+
+  const handleAddActivity = (blockIndex: number) => {
+    setShowActivityModal({ 
+      index: blockIndex, 
+      activityName: '' 
+    });
+  };
+
+  const canUseSameAsPrevious = (blockIndex: number): boolean => {
+    if (blockIndex === 0) return false;
+    const previousBlock = timeBlocks[blockIndex - 1];
+    return !!(previousBlock?.activities?.length);
   };
 
   const handleSameAsPrevious = (blockIndex: number, checked: boolean) => {
@@ -133,21 +195,22 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
     
     if (checked && blockIndex > 0) {
       const previousBlock = updatedBlocks[blockIndex - 1];
-      if (previousBlock.activityTypeId) {
+      if (previousBlock?.activities?.length > 0) {
         updatedBlocks[blockIndex] = {
           ...updatedBlocks[blockIndex],
-          activityTypeId: previousBlock.activityTypeId,
-          activityName: previousBlock.activityName,
-          blockName: previousBlock.blockName,
+          activities: previousBlock.activities.map(activity => ({
+            ...activity,
+            activityTypeId: activity.activityTypeId,
+            activityName: activity.activityName,
+            blockName: activity.blockName,
+          })),
           sameAsPrevious: true,
         };
       }
     } else {
       updatedBlocks[blockIndex] = {
         ...updatedBlocks[blockIndex],
-        activityTypeId: undefined,
-        activityName: undefined,
-        blockName: undefined,
+        activities: [],
         sameAsPrevious: false,
       };
     }
@@ -155,29 +218,33 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
     setTimeBlocks(updatedBlocks);
   };
 
-  const canUseSameAsPrevious = (blockIndex: number): boolean => {
-    if (blockIndex === 0) return false;
-    return !!timeBlocks[blockIndex - 1]?.activityTypeId;
-  };
-
   const handleSave = async () => {
     try {
       setSubmitting(true);
 
-      // Convert TimeBlockRow[] to TimeBlock[]
-      const convertedTimeBlocks: Omit<TimeBlock, '_id'>[] = timeBlocks
-        .filter(block => block.activityTypeId) // Only include blocks with activities
-        .map((block, index) => ({
-          activityTypeId: block.activityTypeId!,
-          blockName: block.blockName || block.activityName || '',
-          startTime: block.startTime,
-          endTime: block.endTime,
-          notes: '',
-          order: index,
-        }));
+      // Convert TimeBlockRow[] to TimeBlock[] - create separate time blocks for each activity
+      const convertedTimeBlocks: Omit<TimeBlock, '_id'>[] = [];
+      
+      timeBlocks.forEach((block, blockIndex) => {
+        if (block.activities && block.activities.length > 0) {
+          // Create a separate time block for each activity in the same time slot
+          block.activities.forEach((activity, activityIndex) => {
+            convertedTimeBlocks.push({
+              activityTypeId: activity.activityTypeId,
+              blockName: activity.blockName,
+              startTime: block.startTime,
+              endTime: block.endTime,
+              notes: block.activities.length > 1 ? 
+                `Activity ${activityIndex + 1} of ${block.activities.length} in ${block.startTime}-${block.endTime}` : '',
+              order: convertedTimeBlocks.length,
+            });
+          });
+        }
+      });
 
       const updatedTemplate = {
         ...template,
+        startTime: dayStartTime,
         timeBlocks: convertedTimeBlocks,
       };
 
@@ -214,6 +281,9 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
   const renderTimeBlockRow = ({ item, index }: { item: TimeBlockRow; index: number }) => {
     const canUsePrevious = canUseSameAsPrevious(index);
     
+    // Ensure activities array exists
+    const activities = item.activities || [];
+    
     return (
       <View style={styles.tableRow}>
         <View style={styles.timeColumn}>
@@ -222,20 +292,40 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
         <View style={styles.timeColumn}>
           <Text style={styles.timeText}>{item.endTime}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.activityColumn}
-          onPress={() => setShowActivityModal({ 
-            index, 
-            activityName: item.activityName || '' 
-          })}
-        >
-          <Text style={[
-            styles.activityText,
-            !item.activityName && styles.activityTextPlaceholder
-          ]}>
-            {item.activityName || 'Tap to select'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.activityColumn}>
+          {activities.length === 0 ? (
+            <TouchableOpacity 
+              style={styles.defaultAddButton}
+              onPress={() => handleAddActivity(index)}
+            >
+              <Text style={styles.defaultAddText}>+</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.activitiesContainer}>
+              {activities.map((activity, activityIndex) => (
+                <View key={activityIndex} style={styles.activityRow}>
+                  <Text style={styles.activityText}>{activity.activityName}</Text>
+                  <View style={styles.activityActions}>
+                    <TouchableOpacity
+                      style={styles.removeActivityButton}
+                      onPress={() => handleRemoveActivity(index, activityIndex)}
+                    >
+                      <Text style={styles.removeActivityText}>✕</Text>
+                    </TouchableOpacity>
+                    {activityIndex === activities.length - 1 && (
+                      <TouchableOpacity
+                        style={styles.addActivityButton}
+                        onPress={() => handleAddActivity(index)}
+                      >
+                        <Text style={styles.addActivityText}>+</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
         <View style={styles.checkboxColumn}>
           {canUsePrevious && (
             <TouchableOpacity
@@ -251,6 +341,46 @@ const EditTimeBlocksScreen: React.FC<EditTimeBlocksScreenProps> = ({ navigation,
         </View>
       </View>
     );
+  };
+
+  const mapExistingActivities = (activitiesData: ActivityType[]) => {
+    // Map existing activities to the time blocks
+    setTimeBlocks(prevBlocks => {
+      const updatedBlocks = [...prevBlocks];
+      
+      template.timeBlocks.forEach((existingBlock: any) => {
+        // Find the corresponding time block by start time
+        const blockIndex = updatedBlocks.findIndex(block => 
+          block.startTime === existingBlock.startTime
+        );
+        
+        if (blockIndex !== -1) {
+          const activity = activitiesData.find(act => 
+            act._id === (typeof existingBlock.activityTypeId === 'string' 
+              ? existingBlock.activityTypeId 
+              : existingBlock.activityTypeId._id)
+          );
+          
+          if (activity) {
+            updatedBlocks[blockIndex] = {
+              ...updatedBlocks[blockIndex],
+              activities: [
+                {
+                  activityTypeId: typeof existingBlock.activityTypeId === 'string' 
+                    ? existingBlock.activityTypeId 
+                    : existingBlock.activityTypeId._id,
+                  activityName: activity.name,
+                  blockName: existingBlock.blockName || activity.name,
+                },
+              ],
+              sameAsPrevious: false,
+            };
+          }
+        }
+      });
+      
+      return updatedBlocks;
+    });
   };
 
   if (loading) {
@@ -729,6 +859,57 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 16,
     color: '#64748b',
+  },
+  defaultAddButton: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+  },
+  defaultAddText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    fontWeight: 'bold',
+  },
+  activitiesContainer: {
+    flex: 1,
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+    marginBottom: 4,
+  },
+  activityActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  removeActivityButton: {
+    padding: 4,
+    backgroundColor: '#fef2f2',
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  removeActivityText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: 'bold',
+  },
+  addActivityButton: {
+    padding: 4,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 4,
+  },
+  addActivityText: {
+    fontSize: 12,
+    color: '#0369a1',
+    fontWeight: 'bold',
   },
 });
 

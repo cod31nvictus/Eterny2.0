@@ -55,6 +55,11 @@ const dayTemplateSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  startTime: {
+    type: String, // Format: "HH:MM" (24-hour format)
+    default: "06:00",
+    trim: true
+  },
   dimensionValues: [dimensionValueSchema],
   timeBlocks: [timeBlockSchema],
   userId: {

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
@@ -18,6 +19,8 @@ const TemplatesScreen: React.FC = () => {
   const [activities, setActivities] = useState<ActivityType[]>([]);
   const [dimensions, setDimensions] = useState<DayDimension[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<DayTemplate | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const navigation = useNavigation();
 
   // Debug navigation
@@ -113,6 +116,41 @@ const TemplatesScreen: React.FC = () => {
     }
   };
 
+  const generateFullDaySchedule = (template: DayTemplate) => {
+    const startTime = template.startTime || '06:00';
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(startHour, startMinute, 0, 0);
+    
+    const schedule = [];
+    const currentTime = new Date(startDate);
+    
+    // Generate 96 time blocks (24 hours * 4 blocks per hour)
+    for (let i = 0; i < 96; i++) {
+      const blockStartTime = new Date(currentTime);
+      const blockEndTime = new Date(currentTime.getTime() + 15 * 60 * 1000); // Add 15 minutes
+      
+      const startTimeStr = blockStartTime.toTimeString().slice(0, 5);
+      const endTimeStr = blockEndTime.toTimeString().slice(0, 5);
+      
+      // Find if there's an activity for this time block
+      const activity = template.timeBlocks.find(block => 
+        block.startTime === startTimeStr
+      );
+      
+      schedule.push({
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        activity: activity ? (activity.blockName || getActivityName(activity.activityTypeId)) : null,
+        hasActivity: !!activity
+      });
+      
+      currentTime.setTime(currentTime.getTime() + 15 * 60 * 1000); // Add 15 minutes
+    }
+    
+    return schedule;
+  };
+
   const getActivityName = (activityId: string | ActivityType) => {
     if (typeof activityId === 'object') {
       return activityId.name;
@@ -125,18 +163,9 @@ const TemplatesScreen: React.FC = () => {
     return new Date(`2000-01-01T${time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const calculateDuration = (startTime: string, endTime: string) => {
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    const diffMs = end.getTime() - start.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMins < 60) {
-      return `${diffMins}m`;
-    }
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return `${hours}h ${mins}m`;
+  const handleViewSchedule = (template: DayTemplate) => {
+    setSelectedTemplate(template);
+    setShowScheduleModal(true);
   };
 
   if (loading) {
@@ -175,55 +204,42 @@ const TemplatesScreen: React.FC = () => {
                     {template.description && (
                       <Text style={styles.templateDescription}>{template.description}</Text>
                     )}
+                    <Text style={styles.templateMeta}>
+                      Starts at {formatTime(template.startTime || '06:00')} • {template.timeBlocks.length} activities
+                    </Text>
                   </View>
                   <View style={styles.templateActions}>
                     <TouchableOpacity
-                      style={styles.editButton}
+                      style={styles.iconButton}
                       onPress={handleCreateTemplate}
                     >
-                      <Text style={styles.editButtonText}>Edit Info</Text>
+                      <Text style={styles.iconText}>✏️</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity
-                      style={styles.editTimeBlocksButton}
+                      style={styles.iconButton}
                       onPress={() => (navigation as any).navigate('EditTimeBlocks', { template })}
                     >
-                      <Text style={styles.editTimeBlocksButtonText}>Edit Schedule</Text>
+                      <Text style={styles.iconText}>📅</Text>
                     </TouchableOpacity>
 
                     {!template.isDefault && (
                       <TouchableOpacity
-                        style={styles.deleteButton}
+                        style={[styles.iconButton, styles.deleteIconButton]}
                         onPress={() => handleDelete(template)}
                       >
-                        <Text style={styles.deleteButtonText}>Delete</Text>
+                        <Text style={styles.iconText}>🗑️</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
 
-                <View style={styles.templateSchedule}>
-                  <Text style={styles.scheduleTitle}>
-                    Schedule ({template.timeBlocks.length} activities)
-                  </Text>
-                  <ScrollView style={styles.timeBlocksList} nestedScrollEnabled>
-                    {template.timeBlocks.map((block, index) => {
-                      const activity = typeof block.activityTypeId === 'object' ? block.activityTypeId : 
-                        activities.find(act => act._id === block.activityTypeId);
-                      return (
-                        <View key={index} style={styles.timeBlockItem}>
-                          <Text style={styles.timeBlockActivity}>
-                            {block.blockName || activity?.name || 'Unknown Activity'}
-                          </Text>
-                          <Text style={styles.timeBlockTime}>
-                            {formatTime(block.startTime)} - {formatTime(block.endTime)} 
-                            ({calculateDuration(block.startTime, block.endTime)})
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
+                <TouchableOpacity
+                  style={styles.viewScheduleButton}
+                  onPress={() => handleViewSchedule(template)}
+                >
+                  <Text style={styles.viewScheduleButtonText}>👁️ View Schedule</Text>
+                </TouchableOpacity>
 
                 {template.tags.length > 0 && (
                   <View style={styles.templateTags}>
@@ -256,6 +272,49 @@ const TemplatesScreen: React.FC = () => {
       >
         <Text style={styles.addButtonText}>+ Create Template</Text>
       </TouchableOpacity>
+
+      {/* Schedule Modal */}
+      <Modal
+        visible={showScheduleModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {selectedTemplate?.name} - Full Day Schedule
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowScheduleModal(false)}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.scheduleContainer}>
+            {selectedTemplate && generateFullDaySchedule(selectedTemplate).map((block, index) => (
+              <View 
+                key={index} 
+                style={[
+                  styles.scheduleBlock,
+                  block.hasActivity ? styles.scheduleBlockActive : styles.scheduleBlockEmpty
+                ]}
+              >
+                <Text style={styles.scheduleTime}>
+                  {formatTime(block.startTime)} - {formatTime(block.endTime)}
+                </Text>
+                <Text style={[
+                  styles.scheduleActivity,
+                  !block.hasActivity && styles.scheduleActivityEmpty
+                ]}>
+                  {block.activity || 'Free time'}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -352,61 +411,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  editButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  iconButton: {
+    padding: 8,
     backgroundColor: '#f1f5f9',
     borderRadius: 6,
   },
-  editButtonText: {
-    fontSize: 12,
+  iconText: {
+    fontSize: 16,
     color: '#64748b',
     fontWeight: '500',
   },
-  editTimeBlocksButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 6,
-  },
-  editTimeBlocksButtonText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  deleteButton: {
+  deleteIconButton: {
     backgroundColor: '#fef2f2',
   },
-  deleteButtonText: {
-    color: '#ef4444',
-  },
-  templateSchedule: {
-    marginBottom: 16,
-  },
-  scheduleTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  timeBlocksList: {
-    maxHeight: 120,
-  },
-  timeBlockItem: {
-    backgroundColor: '#f8fafc',
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  timeBlockActivity: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
-    marginBottom: 2,
-  },
-  timeBlockTime: {
+  templateMeta: {
     fontSize: 12,
     color: '#64748b',
+  },
+  viewScheduleButton: {
+    backgroundColor: '#6366f1',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  viewScheduleButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   templateTags: {
     marginBottom: 12,
@@ -462,6 +493,58 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  closeButton: {
+    padding: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 6,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  scheduleContainer: {
+    flex: 1,
+  },
+  scheduleBlock: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  scheduleBlockActive: {
+    backgroundColor: '#f1f5f9',
+  },
+  scheduleBlockEmpty: {
+    backgroundColor: '#fff',
+  },
+  scheduleTime: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  scheduleActivity: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '500',
+  },
+  scheduleActivityEmpty: {
+    color: '#64748b',
   },
 });
 

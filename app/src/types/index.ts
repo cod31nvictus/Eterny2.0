@@ -86,6 +86,7 @@ export interface DayTemplate {
   _id: string;
   name: string;
   description?: string;
+  startTime: string;
   dimensionValues: TemplateDimensionValue[];
   timeBlocks: TimeBlock[];
   tags: string[];
@@ -97,6 +98,7 @@ export interface DayTemplate {
 export interface CreateTemplateForm {
   name: string;
   description?: string;
+  startTime: string;
   dimensionValues: TemplateDimensionValue[];
   timeBlocks: Omit<TimeBlock, '_id'>[];
   tags: string[];

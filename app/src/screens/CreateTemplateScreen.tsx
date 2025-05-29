@@ -24,6 +24,7 @@ const CreateTemplateScreen: React.FC<CreateTemplateScreenProps> = ({ navigation,
   const [formData, setFormData] = useState<Omit<CreateTemplateForm, 'timeBlocks'>>({
     name: '',
     description: '',
+    startTime: '06:00',
     dimensionValues: [],
     tags: [],
   });
@@ -38,6 +39,7 @@ const CreateTemplateScreen: React.FC<CreateTemplateScreenProps> = ({ navigation,
       setFormData({
         name: editingTemplate.name,
         description: editingTemplate.description || '',
+        startTime: editingTemplate.startTime,
         dimensionValues: editingTemplate.dimensionValues,
         tags: editingTemplate.tags,
       });
