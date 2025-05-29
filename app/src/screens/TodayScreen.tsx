@@ -11,80 +11,66 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface Block {
+interface ActivityInBlock {
   _id: string;
-  activityType: {
-    name: string;
-    wellnessTags: string[];
-  };
-  startTime: string;
-  endTime: string;
-  notes?: string;
+  name: string;
+  wellnessTags: string[];
   blockName?: string;
 }
 
-interface PlannedDay {
-  _id: string;
-  date: string;
-  template: {
-    name: string;
-    blocks: Block[];
-  };
+interface TimeBlock {
+  startTime: string;
+  endTime: string;
+  activities: ActivityInBlock[];
+}
+
+interface ScheduleBlock {
+  startTime: string;
+  endTime: string;
+  activities: ActivityInBlock[];
+  hasActivity: boolean;
+  isActive: boolean;
+  isPast: boolean;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const TodayScreen = () => {
   const { user } = useAuth();
-  const [todayBlocks, setTodayBlocks] = useState<Block[]>([]);
+  const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const formatTime = (time: string) => {
+    // Remove seconds if present and format as HH:MM
+    const timeParts = time.split(':');
+    return `${timeParts[0]}:${timeParts[1]}`;
+  };
 
   const timeStringToMinutes = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number);
     return hours * 60 + minutes;
   };
 
-  const minutesToTimeString = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  };
-
   const getCurrentTimeInMinutes = () => {
     return currentTime.getHours() * 60 + currentTime.getMinutes();
   };
 
-  const isBlockActive = (block: Block) => {
+  const isBlockActive = (startTime: string, endTime: string) => {
     const currentMinutes = getCurrentTimeInMinutes();
-    const startMinutes = timeStringToMinutes(block.startTime);
-    const endMinutes = timeStringToMinutes(block.endTime);
+    const startMinutes = timeStringToMinutes(startTime);
+    const endMinutes = timeStringToMinutes(endTime);
     return currentMinutes >= startMinutes && currentMinutes < endMinutes;
   };
 
-  const isBlockPast = (block: Block) => {
+  const isBlockPast = (endTime: string) => {
     const currentMinutes = getCurrentTimeInMinutes();
-    const endMinutes = timeStringToMinutes(block.endTime);
+    const endMinutes = timeStringToMinutes(endTime);
     return currentMinutes >= endMinutes;
   };
 
-  const getBlockDuration = (block: Block) => {
-    const startMinutes = timeStringToMinutes(block.startTime);
-    const endMinutes = timeStringToMinutes(block.endTime);
-    const duration = endMinutes - startMinutes;
-    
-    const hours = Math.floor(duration / 60);
-    const mins = duration % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ''}`;
-    }
-    return `${mins}m`;
-  };
-
   const getWellnessColor = (tags: string[]) => {
-    // Simple color mapping based on wellness tags
     const colorMap: { [key: string]: string } = {
       'Physical Health': '#10b981',
       'Mental Health': '#6366f1',
@@ -101,7 +87,54 @@ const TodayScreen = () => {
         return colorMap[tag];
       }
     }
-    return '#64748b'; // Default gray
+    return '#64748b';
+  };
+
+  const generateFullDaySchedule = (timeBlocks: TimeBlock[]) => {
+    // Start from 6:00 AM by default
+    const startTime = '06:00';
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(startHour, startMinute, 0, 0);
+    
+    const schedule: ScheduleBlock[] = [];
+    const currentTime = new Date(startDate);
+    
+    // Generate 96 time blocks (24 hours * 4 blocks per hour)
+    for (let i = 0; i < 96; i++) {
+      const blockStartTime = new Date(currentTime);
+      const blockEndTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
+      
+      const startTimeStr = blockStartTime.toTimeString().slice(0, 5);
+      const endTimeStr = blockEndTime.toTimeString().slice(0, 5);
+      
+      // Find all activities for this time block
+      const activitiesForBlock = timeBlocks.filter(block => 
+        block.startTime === startTimeStr
+      );
+      
+      const activities: ActivityInBlock[] = [];
+      activitiesForBlock.forEach(block => {
+        activities.push(...block.activities);
+      });
+      
+      const hasActivity = activities.length > 0;
+      const isActive = isBlockActive(startTimeStr, endTimeStr);
+      const isPast = isBlockPast(endTimeStr);
+      
+      schedule.push({
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        activities,
+        hasActivity,
+        isActive,
+        isPast
+      });
+      
+      currentTime.setTime(currentTime.getTime() + 15 * 60 * 1000);
+    }
+    
+    return schedule;
   };
 
   const fetchTodaySchedule = async () => {
@@ -122,35 +155,42 @@ const TodayScreen = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Extract blocks from all templates for today
-        const allBlocks: Block[] = [];
+        // Extract and group time blocks from all templates
+        const timeBlocksMap = new Map<string, TimeBlock>();
         
         if (data.templates && data.templates.length > 0) {
           data.templates.forEach((templateData: any) => {
             if (templateData.template && templateData.template.timeBlocks) {
               templateData.template.timeBlocks.forEach((timeBlock: any) => {
-                allBlocks.push({
+                const key = `${timeBlock.startTime}-${timeBlock.endTime}`;
+                
+                const activity: ActivityInBlock = {
                   _id: timeBlock._id,
-                  activityType: {
-                    name: timeBlock.activityTypeId.name,
-                    wellnessTags: timeBlock.activityTypeId.wellnessTagIds?.map((tag: any) => tag.name) || []
-                  },
-                  startTime: timeBlock.startTime,
-                  endTime: timeBlock.endTime,
-                  notes: timeBlock.notes,
+                  name: timeBlock.activityTypeId.name,
+                  wellnessTags: timeBlock.activityTypeId.wellnessTagIds?.map((tag: any) => tag.name) || [],
                   blockName: timeBlock.blockName
-                });
+                };
+                
+                if (timeBlocksMap.has(key)) {
+                  timeBlocksMap.get(key)!.activities.push(activity);
+                } else {
+                  timeBlocksMap.set(key, {
+                    startTime: timeBlock.startTime,
+                    endTime: timeBlock.endTime,
+                    activities: [activity]
+                  });
+                }
               });
             }
           });
         }
         
-        // Sort blocks by start time
-        const sortedBlocks = allBlocks.sort((a, b) => 
-          timeStringToMinutes(a.startTime) - timeStringToMinutes(b.startTime)
-        );
+        const timeBlocks = Array.from(timeBlocksMap.values());
+        const fullSchedule = generateFullDaySchedule(timeBlocks);
         
-        setTodayBlocks(sortedBlocks);
+        // Only show blocks that have activities
+        const blocksWithActivities = fullSchedule.filter(block => block.hasActivity);
+        setScheduleBlocks(blocksWithActivities);
       }
     } catch (error) {
       console.error('Error fetching today schedule:', error);
@@ -167,6 +207,14 @@ const TodayScreen = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
+      // Update the schedule blocks with new active/past status
+      setScheduleBlocks(prevBlocks => 
+        prevBlocks.map(block => ({
+          ...block,
+          isActive: isBlockActive(block.startTime, block.endTime),
+          isPast: isBlockPast(block.endTime)
+        }))
+      );
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
@@ -177,85 +225,72 @@ const TodayScreen = () => {
     fetchTodaySchedule();
   };
 
-  const renderTimelineBlock = (block: Block, index: number) => {
-    const isActive = isBlockActive(block);
-    const isPast = isBlockPast(block);
-    const wellnessColor = getWellnessColor(block.activityType.wellnessTags);
-
+  const renderScheduleBlock = (block: ScheduleBlock, index: number) => {
     return (
-      <View key={block._id} style={styles.timelineItem}>
-        <View style={styles.timeColumn}>
-          <Text style={[styles.timeText, isPast && styles.pastTimeText]}>
-            {block.startTime}
-          </Text>
-          <View style={[styles.timeDot, { backgroundColor: wellnessColor }]} />
-          <Text style={[styles.timeText, isPast && styles.pastTimeText]}>
-            {block.endTime}
-          </Text>
-        </View>
+      <View 
+        key={index} 
+        style={[
+          styles.scheduleBlock,
+          block.isPast && styles.scheduleBlockPast,
+          block.isActive && styles.scheduleBlockCurrent,
+          !block.isPast && !block.isActive && styles.scheduleBlockUpcoming
+        ]}
+      >
+        <Text style={[
+          styles.scheduleTime,
+          block.isPast && styles.scheduleTimePast,
+          block.isActive && styles.scheduleTimeCurrent,
+          !block.isPast && !block.isActive && styles.scheduleTimeUpcoming
+        ]}>
+          {formatTime(block.startTime)} - {formatTime(block.endTime)}
+        </Text>
         
-        <View style={styles.blockColumn}>
-          <View style={[
-            styles.blockCard,
-            isActive && styles.activeBlock,
-            isPast && styles.pastBlock,
-            { borderLeftColor: wellnessColor }
-          ]}>
-            <View style={styles.blockHeader}>
-              <Text style={[
-                styles.blockTitle,
-                isActive && styles.activeBlockTitle,
-                isPast && styles.pastBlockTitle
-              ]}>
-                {block.blockName || block.activityType.name}
-              </Text>
-              <Text style={[
-                styles.blockDuration,
-                isPast && styles.pastText
-              ]}>
-                {getBlockDuration(block)}
-              </Text>
-            </View>
-            
-            {block.notes && (
-              <Text style={[
-                styles.blockNotes,
-                isPast && styles.pastText
-              ]}>
-                {block.notes}
-              </Text>
-            )}
-            
-            {block.activityType.wellnessTags.length > 0 && (
-              <View style={styles.tagsContainer}>
-                {block.activityType.wellnessTags.map((tag, tagIndex) => (
-                  <View 
-                    key={tagIndex} 
-                    style={[
-                      styles.tag,
-                      { backgroundColor: `${wellnessColor}20` },
-                      isPast && styles.pastTag
-                    ]}
-                  >
-                    <Text style={[
-                      styles.tagText,
-                      { color: wellnessColor },
-                      isPast && styles.pastTagText
-                    ]}>
-                      {tag}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            
-            {isActive && (
-              <View style={styles.activeIndicator}>
-                <Text style={styles.activeIndicatorText}>ACTIVE NOW</Text>
-              </View>
-            )}
+        {block.activities.length > 0 && (
+          <View style={styles.activitiesContainer}>
+            {block.activities.map((activity, activityIndex) => {
+              const wellnessColor = getWellnessColor(activity.wellnessTags);
+              return (
+                <View 
+                  key={activityIndex} 
+                  style={[
+                    styles.activityTag,
+                    { 
+                      backgroundColor: block.isPast 
+                        ? '#f3f4f6' 
+                        : block.isActive 
+                          ? `${wellnessColor}30`
+                          : `${wellnessColor}15`,
+                      borderColor: block.isPast 
+                        ? '#d1d5db' 
+                        : block.isActive 
+                          ? wellnessColor
+                          : `${wellnessColor}80`
+                    }
+                  ]}
+                >
+                  <Text style={[
+                    styles.activityTagText,
+                    { 
+                      color: block.isPast 
+                        ? '#9ca3af' 
+                        : block.isActive 
+                          ? wellnessColor
+                          : `${wellnessColor}CC`
+                    }
+                  ]}>
+                    {activity.blockName || activity.name}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        </View>
+        )}
+        
+        {block.isActive && (
+          <View style={styles.activeIndicator}>
+            <Text style={styles.activeIndicatorText}>● ACTIVE NOW</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -289,9 +324,9 @@ const TodayScreen = () => {
           </Text>
         </View>
 
-        {todayBlocks.length > 0 ? (
-          <View style={styles.timeline}>
-            {todayBlocks.map((block, index) => renderTimelineBlock(block, index))}
+        {scheduleBlocks.length > 0 ? (
+          <View style={styles.scheduleContainer}>
+            {scheduleBlocks.map((block, index) => renderScheduleBlock(block, index))}
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -340,124 +375,86 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 4,
   },
-  timeline: {
-    flex: 1,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  timeColumn: {
-    width: 80,
-    alignItems: 'center',
-    paddingTop: 8,
-  },
-  timeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  pastTimeText: {
-    color: '#9ca3af',
-  },
-  timeDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginVertical: 8,
-  },
-  blockColumn: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  blockCard: {
-    backgroundColor: '#ffffff',
+  scheduleContainer: {
+    backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  scheduleBlock: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    backgroundColor: '#fff',
+  },
+  scheduleBlockPast: {
+    backgroundColor: '#f8f9fa',
+    opacity: 0.6,
+  },
+  scheduleBlockCurrent: {
+    backgroundColor: '#f0f9ff',
+    borderLeftWidth: 4,
+    borderLeftColor: '#0ea5e9',
+    shadowColor: '#0ea5e9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
   },
-  activeBlock: {
-    backgroundColor: '#f0f9ff',
-    borderColor: '#0ea5e9',
+  scheduleBlockUpcoming: {
+    backgroundColor: '#fafbfc',
   },
-  pastBlock: {
-    backgroundColor: '#f9fafb',
-    opacity: 0.7,
-  },
-  blockHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  scheduleTime: {
+    fontSize: 14,
+    color: '#64748b',
     marginBottom: 8,
-  },
-  blockTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    flex: 1,
-  },
-  activeBlockTitle: {
-    color: '#0ea5e9',
-  },
-  pastBlockTitle: {
-    color: '#9ca3af',
-  },
-  blockDuration: {
-    fontSize: 14,
     fontWeight: '500',
-    color: '#64748b',
-    marginLeft: 8,
   },
-  blockNotes: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 12,
-    fontStyle: 'italic',
+  scheduleTimeCurrent: {
+    color: '#0ea5e9',
+    fontWeight: '700',
   },
-  pastText: {
+  scheduleTimePast: {
     color: '#9ca3af',
+    fontWeight: '400',
   },
-  tagsContainer: {
+  scheduleTimeUpcoming: {
+    color: '#64748b',
+    fontWeight: '400',
+  },
+  activitiesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 8,
   },
-  tag: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 8,
-    marginBottom: 4,
+  activityTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  pastTag: {
-    backgroundColor: '#f3f4f6',
-  },
-  tagText: {
-    fontSize: 12,
+  activityTagText: {
+    fontSize: 14,
     fontWeight: '500',
-  },
-  pastTagText: {
-    color: '#9ca3af',
   },
   activeIndicator: {
     backgroundColor: '#0ea5e9',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     alignSelf: 'flex-start',
+    marginTop: 4,
   },
   activeIndicatorText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     backgroundColor: '#ffffff',
