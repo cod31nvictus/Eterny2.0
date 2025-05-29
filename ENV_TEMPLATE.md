@@ -1,138 +1,103 @@
-# 🔐 Environment Configuration Template
+# Environment Configuration Template
 
-## **Required Environment Variables**
+This file contains all the environment variables needed to run Eterny 2.0 in production.
 
-### **📁 Server Environment (`server/.env`)**
+## Server Environment Variables (.env)
 
 Create a `.env` file in the `server/` directory with the following variables:
 
 ```bash
 # Database Configuration
 MONGODB_URI=mongodb://localhost:27017/eterny
+# For production, use MongoDB Atlas or your hosted MongoDB instance:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eterny
 
-# JWT Configuration (CRITICAL - Generate strong secrets!)
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-chars
-SESSION_SECRET=your-super-secret-session-key-change-this-in-production
+# JWT Configuration
+JWT_SECRET=your_super_secure_jwt_secret_here_change_this_in_production_minimum_32_characters
+
+# Session Configuration  
+SESSION_SECRET=your_super_secure_session_secret_here_change_this_in_production_minimum_32_characters
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
-
-# Frontend URL (for OAuth redirects)
-CLIENT_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_OAUTH_CALLBACK_URL=https://your-domain.com/auth/google/callback
 
 # Server Configuration
 PORT=5001
-NODE_ENV=development
+HOST=0.0.0.0
+NODE_ENV=production
 
-# CORS Configuration (optional)
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+# CORS Configuration (comma-separated list of allowed origins)
+ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com,https://app.your-domain.com
+
+# Client URL for OAuth redirects
+CLIENT_URL=https://your-domain.com
 ```
 
-### **📁 Client Environment (`client/.env`)**
+## React Native Environment Variables
 
-Create a `.env` file in the `client/` directory with:
+For React Native production builds, set these environment variables:
 
 ```bash
-# API Base URL
-REACT_APP_API_URL=http://localhost:5001
-
-# Google OAuth Client ID (for frontend)
-REACT_APP_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+# API Configuration
+REACT_APP_API_URL=https://api.your-domain.com/api
+REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
-### **📁 Mobile App Environment (`app/.env`)**
+## Security Notes
 
-Create a `.env` file in the `app/` directory with:
+1. **JWT_SECRET**: Must be at least 32 characters long and cryptographically secure
+2. **SESSION_SECRET**: Must be at least 32 characters long and different from JWT_SECRET
+3. **Google OAuth**: Ensure your Google Console project has the correct redirect URIs configured
+4. **CORS**: Only include the domains that need access to your API
+5. **HTTPS**: Always use HTTPS in production for all URLs
 
-```bash
-# API Base URL for mobile
-API_BASE_URL=http://localhost:5001
-
-# Google OAuth Configuration for mobile
-GOOGLE_CLIENT_ID_MOBILE=your-google-oauth-client-id.apps.googleusercontent.com
-```
-
-## **🔑 How to Generate Secure Secrets**
-
-### **JWT_SECRET & SESSION_SECRET**
-
-Use one of these methods to generate secure secrets:
-
-```bash
-# Method 1: Using Node.js
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-
-# Method 2: Using OpenSSL
-openssl rand -hex 64
-
-# Method 3: Using online generator (for development only)
-# Visit: https://generate-secret.vercel.app/64
-```
-
-### **Google OAuth Setup**
+## Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable Google+ API
+2. Create a new project or select existing one
+3. Enable Google+ API and Google Calendar API
 4. Create OAuth 2.0 credentials
 5. Add authorized redirect URIs:
-   - `http://localhost:5001/auth/google/callback` (development)
-   - `https://your-domain.com/auth/google/callback` (production)
+   - `https://your-domain.com/auth/google/callback`
+6. Add authorized JavaScript origins:
+   - `https://your-domain.com`
+7. Copy the Client ID and Client Secret to your environment variables
 
-## **🚀 Production Environment Variables**
+## MongoDB Setup
 
-### **Server Production (`server/.env.production`)**
-
+### Local Development
 ```bash
-# Database (MongoDB Atlas)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eterny
-
-# Security (Strong secrets)
-JWT_SECRET=production-jwt-secret-64-chars-minimum
-SESSION_SECRET=production-session-secret-64-chars-minimum
-
-# Google OAuth (Production credentials)
-GOOGLE_CLIENT_ID=prod-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=prod-google-client-secret
-
-# URLs (Production domains)
-CLIENT_URL=https://eterny.your-domain.com
-
-# Server
-PORT=5001
-NODE_ENV=production
+# Install MongoDB locally
+brew install mongodb/brew/mongodb-community
+brew services start mongodb/brew/mongodb-community
 ```
 
-### **Client Production (`client/.env.production`)**
+### Production (MongoDB Atlas)
+1. Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
+2. Create a new cluster
+3. Create database user
+4. Whitelist your server IP addresses
+5. Get connection string and add to MONGODB_URI
 
-```bash
-REACT_APP_API_URL=https://api.eterny.your-domain.com
-REACT_APP_GOOGLE_CLIENT_ID=prod-google-client-id.apps.googleusercontent.com
-```
+## Deployment Checklist
 
-### **Mobile Production (`app/.env.production`)**
+- [ ] All environment variables set
+- [ ] Google OAuth configured with production URLs
+- [ ] MongoDB accessible from production server
+- [ ] HTTPS certificates configured
+- [ ] CORS origins restricted to production domains
+- [ ] JWT and session secrets are secure and unique
+- [ ] NODE_ENV set to 'production'
+- [ ] Rate limiting configured appropriately
+- [ ] Error logging configured
 
-```bash
-API_BASE_URL=https://api.eterny.your-domain.com
-GOOGLE_CLIENT_ID_MOBILE=prod-google-client-id.apps.googleusercontent.com
-```
+## Example Production URLs
 
-## **⚠️ Security Notes**
+Replace `your-domain.com` with your actual domain:
 
-1. **Never commit `.env` files to version control**
-2. **Use different secrets for development and production**
-3. **JWT secrets should be at least 32 characters long**
-4. **Rotate secrets regularly in production**
-5. **Use environment-specific Google OAuth credentials**
-
-## **📋 Setup Checklist**
-
-- [ ] Create `server/.env` with all required variables
-- [ ] Create `client/.env` with API URL and Google Client ID
-- [ ] Create `app/.env` with mobile-specific configuration
-- [ ] Generate secure JWT_SECRET and SESSION_SECRET
-- [ ] Set up Google OAuth credentials
-- [ ] Test authentication flow
-- [ ] Verify all API routes are protected
-- [ ] Configure production environment variables 
+- **API Server**: `https://api.your-domain.com`
+- **Web App**: `https://app.your-domain.com` 
+- **OAuth Callback**: `https://api.your-domain.com/auth/google/callback`
+- **Google Calendar Sync**: `https://api.your-domain.com/sync/*` 

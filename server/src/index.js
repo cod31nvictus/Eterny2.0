@@ -37,7 +37,11 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback_session_secret_change_this_in_production_immediately',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // Set to true in production with HTTPS
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Passport middleware
@@ -59,11 +63,6 @@ app.use('/sync', apiLimiter, require('./routes/sync'));
 // Backward compatibility routes
 app.use('/quick-stats', apiLimiter, require('./routes/summary'));
 app.use('/completion', apiLimiter, require('./routes/profile'));
-
-// Test route (no rate limiting for health checks)
-app.get('/ping', (req, res) => {
-  res.json({ message: 'pong', timestamp: new Date().toISOString() });
-});
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

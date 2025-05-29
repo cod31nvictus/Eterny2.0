@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from '../config/environment';
 import {
   User,
   WellnessCategory,
@@ -13,8 +14,6 @@ import {
   WellnessSummary,
   QuickStats,
 } from '../types';
-
-const BASE_URL = 'http://10.0.2.2:5001/api';
 
 class ApiService {
   private async getAuthToken(): Promise<string | null> {
@@ -32,7 +31,7 @@ class ApiService {
   ): Promise<T> {
     const token = await this.getAuthToken();
 
-    const config: RequestInit = {
+    const requestConfig: RequestInit = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +40,7 @@ class ApiService {
       },
     };
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    const response = await fetch(`${config.API_BASE_URL}${endpoint}`, requestConfig);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -205,7 +204,7 @@ class ApiService {
     // Google Calendar sync methods
     getSyncStatus: async (): Promise<{ connected: boolean; enabled: boolean; message: string }> => {
       const token = await this.getAuthToken();
-      const response = await fetch('http://10.0.2.2:5001/sync/status', {
+      const response = await fetch(`${config.SYNC_BASE_URL}/status`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -219,7 +218,7 @@ class ApiService {
 
     enableSync: async (): Promise<{ success: boolean; message: string }> => {
       const token = await this.getAuthToken();
-      const response = await fetch('http://10.0.2.2:5001/sync/enable', {
+      const response = await fetch(`${config.SYNC_BASE_URL}/enable`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +233,7 @@ class ApiService {
 
     disableSync: async (): Promise<{ success: boolean; message: string }> => {
       const token = await this.getAuthToken();
-      const response = await fetch('http://10.0.2.2:5001/sync/disable', {
+      const response = await fetch(`${config.SYNC_BASE_URL}/disable`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +248,7 @@ class ApiService {
 
     syncToday: async (date: string): Promise<{ success: boolean; message: string }> => {
       const token = await this.getAuthToken();
-      const response = await fetch(`http://10.0.2.2:5001/sync/${date}`, {
+      const response = await fetch(`${config.SYNC_BASE_URL}/${date}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

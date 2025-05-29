@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  FlatList,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DayTemplate, TemplateDimensionValue } from '../types';
-import { api } from '../services/api';
+import api from '../services/api';
+import config from '../config/environment';
 
 interface ActivityInBlock {
   _id: string;
@@ -154,7 +156,7 @@ const TodayScreen = () => {
       const token = await AsyncStorage.getItem('token');
       
       const response = await fetch(
-        `http://10.0.2.2:5001/api/calendar/${today}`,
+        `${config.API_BASE_URL}/calendar/${today}`,
         {
           headers: {
             'Content-Type': 'application/json',

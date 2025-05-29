@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from '../config/environment';
 
 interface ActivityInBlock {
   _id: string;
@@ -149,7 +150,7 @@ const NowScreen = ({ navigation }: any) => {
       const token = await AsyncStorage.getItem('token');
       
       const response = await fetch(
-        `http://10.0.2.2:5001/api/calendar/${today}`,
+        `${config.API_BASE_URL}/calendar/${today}`,
         {
           headers: {
             'Content-Type': 'application/json',

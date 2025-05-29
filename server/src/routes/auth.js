@@ -9,55 +9,7 @@ const router = express.Router();
 // Initialize Google OAuth2 client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Simple dummy login for development
-router.post('/dummy-login', async (req, res) => {
-  try {
-    // Create or find test user
-    let user = await User.findOne({ email: 'demo@eterny.com' });
-    
-    if (!user) {
-      user = new User({
-        googleId: 'demo_user_123',
-        email: 'demo@eterny.com',
-        name: 'Demo User',
-        profilePicture: 'https://via.placeholder.com/150/6366f1/ffffff?text=DU'
-      });
-      await user.save();
-      
-      // Seed default data for demo user
-      const { seedDefaultWellnessCategories, seedDefaultActivityTypes, seedDefaultDayDimensions } = require('../services/seedService');
-      await seedDefaultWellnessCategories(user._id);
-      await seedDefaultActivityTypes(user._id);
-      await seedDefaultDayDimensions(user._id);
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        userId: user._id,
-        email: user.email 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    res.json({ 
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePicture: user.profilePicture
-      }
-    });
-  } catch (error) {
-    console.error('Dummy login error:', error);
-    res.status(500).json({ error: 'Login failed', details: error.message });
-  }
-});
-
-// Simple login status check
+// Health check endpoint
 router.get('/status', (req, res) => {
   res.json({ 
     status: 'ok', 

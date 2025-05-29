@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,11 @@ import {
 } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
+import config from '../../config/environment';
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const { login, clearAllTokens } = useAuth();
-
-  const handleClearTokens = async () => {
-    try {
-      await clearAllTokens();
-      Alert.alert('Success', 'All tokens cleared!');
-    } catch (error) {
-      console.error('Error clearing tokens:', error);
-      Alert.alert('Error', 'Failed to clear tokens');
-    }
-  };
+  const { login } = useAuth();
 
   const handleGoogleSignIn = async () => {
     try {
@@ -31,7 +22,7 @@ const LoginScreen: React.FC = () => {
       
       // Configure Google Sign-In with the actual client ID
       GoogleSignin.configure({
-        webClientId: '231231514086-1ltso6j58bnd6t8510tuf32j3jmbd0dk.apps.googleusercontent.com',
+        webClientId: config.GOOGLE_WEB_CLIENT_ID,
         offlineAccess: true,
         hostedDomain: '',
         forceCodeForRefreshToken: true,
@@ -58,7 +49,7 @@ const LoginScreen: React.FC = () => {
       
       // Send token to backend for verification
       console.log('Sending tokens to backend...');
-      const response = await fetch('http://10.0.2.2:5001/auth/google/mobile', {
+      const response = await fetch(`${config.AUTH_BASE_URL}/google/mobile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,14 +131,6 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.signInButtonText}>Continue with Google</Text>
             </View>
           )}
-        </TouchableOpacity>
-
-        {/* Temporary Debug Button */}
-        <TouchableOpacity
-          style={styles.debugButton}
-          onPress={handleClearTokens}
-        >
-          <Text style={styles.debugButtonText}>Clear All Tokens (Debug)</Text>
         </TouchableOpacity>
 
         {/* Footer */}
@@ -251,21 +234,6 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 18,
-  },
-  debugButton: {
-    backgroundColor: '#ef4444',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#dc2626',
-  },
-  debugButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
 

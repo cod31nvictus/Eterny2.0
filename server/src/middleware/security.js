@@ -13,32 +13,37 @@ const createRateLimiter = (windowMs, max, message) => {
   });
 };
 
-// General API rate limiting (increased for development)
+// Production-optimized rate limiting
+const isProduction = process.env.NODE_ENV === 'production';
+
+// General API rate limiting
 const apiLimiter = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  200, // limit each IP to 200 requests per windowMs (increased for development)
+  isProduction ? 100 : 200, // Stricter in production
   'Too many requests from this IP, please try again later.'
 );
 
-// Strict rate limiting for auth endpoints (relaxed for development)
+// Strict rate limiting for auth endpoints
 const authLimiter = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  100, // limit each IP to 100 auth requests per windowMs (increased for development)
+  isProduction ? 20 : 100, // Much stricter in production
   'Too many authentication attempts, please try again later.'
 );
 
-// Very relaxed rate limiting for user info endpoints
+// User info endpoints rate limiting
 const userInfoLimiter = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  300, // limit each IP to 300 requests per windowMs
+  isProduction ? 150 : 300, // Stricter in production
   'Too many user info requests, please try again later.'
 );
 
-// CORS configuration (relaxed for development)
+// CORS configuration
 const corsOptions = {
-  origin: true, // Allow all origins in development
+  origin: isProduction 
+    ? process.env.ALLOWED_ORIGINS?.split(',') || false
+    : true, // Allow all origins only in development
   credentials: true,
-  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200
 };
 
 // Security headers middleware
@@ -56,7 +61,7 @@ const securityHeaders = helmet({
       frameSrc: ["'none'"],
     },
   },
-  crossOriginEmbedderPolicy: false // Disable for development
+  crossOriginEmbedderPolicy: !isProduction // Only disable in development
 });
 
 // Error handling middleware
