@@ -40,7 +40,11 @@ const userInfoLimiter = createRateLimiter(
 // CORS configuration
 const corsOptions = {
   origin: isProduction 
-    ? process.env.ALLOWED_ORIGINS?.split(',') || false
+    ? [
+        'https://eterny-app.ddns.net',
+        'http://eterny-app.ddns.net', // Temporary fallback during transition
+        ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
+      ]
     : true, // Allow all origins only in development
   credentials: true,
   optionsSuccessStatus: 200

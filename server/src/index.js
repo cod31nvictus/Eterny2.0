@@ -3,6 +3,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const session = require('express-session');
 const passport = require('passport');
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const connectDB = require('./config/database');
 const { 
   apiLimiter, 
@@ -24,6 +28,17 @@ connectDB();
 require('./config/passport');
 
 const app = express();
+
+// Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
 
 // Security middleware
 app.use(securityHeaders);
@@ -67,12 +82,68 @@ app.use('/completion', apiLimiter, require('./routes/profile'));
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Start server
+// Server configuration
 const PORT = process.env.PORT || 5001;
-const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces for emulator access
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server is running on ${HOST}:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔒 Security middleware enabled`);
-  console.log(`📱 Accessible from Android emulator at 10.0.2.2:${PORT}`);
-}); 
+const HTTPS_PORT = process.env.HTTPS_PORT || 443;
+const HOST = process.env.HOST || '0.0.0.0';
+
+if (process.env.NODE_ENV === 'production') {
+  // SSL certificate paths
+  const sslKeyPath = process.env.SSL_KEY_PATH || '/etc/letsencrypt/live/eterny-app.ddns.net/privkey.pem';
+  const sslCertPath = process.env.SSL_CERT_PATH || '/etc/letsencrypt/live/eterny-app.ddns.net/fullchain.pem';
+  
+  try {
+    // Check if SSL certificates exist
+    if (fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)) {
+      // HTTPS server with SSL certificates
+      const httpsOptions = {
+        key: fs.readFileSync(sslKeyPath),
+        cert: fs.readFileSync(sslCertPath)
+      };
+      
+      https.createServer(httpsOptions, app).listen(HTTPS_PORT, HOST, () => {
+        console.log(`🔒 HTTPS Server is running on ${HOST}:${HTTPS_PORT}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+        console.log(`🔐 SSL certificates loaded successfully`);
+      });
+      
+      // HTTP server for redirects
+      const httpApp = express();
+      httpApp.use((req, res) => {
+        res.redirect(301, `https://${req.headers.host}${req.url}`);
+      });
+      
+      http.createServer(httpApp).listen(80, HOST, () => {
+        console.log(`🔄 HTTP redirect server running on ${HOST}:80`);
+      });
+      
+    } else {
+      console.log('⚠️  SSL certificates not found. Starting HTTP server only.');
+      console.log('📝 To enable HTTPS, run: sudo certbot --nginx -d eterny-app.ddns.net');
+      
+      // Fallback to HTTP if certificates don't exist
+      app.listen(PORT, HOST, () => {
+        console.log(`🚀 HTTP Server is running on ${HOST}:${PORT}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+        console.log(`⚠️  Running without SSL - OAuth may not work properly`);
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error loading SSL certificates:', error.message);
+    console.log('📝 Falling back to HTTP server');
+    
+    app.listen(PORT, HOST, () => {
+      console.log(`🚀 HTTP Server is running on ${HOST}:${PORT}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+      console.log(`⚠️  SSL error - OAuth may not work properly`);
+    });
+  }
+} else {
+  // Development server (HTTP only)
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 Development server running on ${HOST}:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 Security middleware enabled`);
+    console.log(`📱 Accessible from Android emulator at 10.0.2.2:${PORT}`);
+  });
+} 

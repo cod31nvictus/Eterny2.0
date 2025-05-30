@@ -15,9 +15,9 @@ const developmentConfig: EnvironmentConfig = {
 };
 
 const productionConfig: EnvironmentConfig = {
-  API_BASE_URL: 'http://eterny-app.ddns.net:3000/api',
-  SYNC_BASE_URL: 'http://eterny-app.ddns.net:3000/sync',
-  AUTH_BASE_URL: 'http://eterny-app.ddns.net:3000/auth',
+  API_BASE_URL: 'https://eterny-app.ddns.net/api',
+  SYNC_BASE_URL: 'https://eterny-app.ddns.net/sync',
+  AUTH_BASE_URL: 'https://eterny-app.ddns.net/auth',
   GOOGLE_WEB_CLIENT_ID: '231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com',
 };
 
