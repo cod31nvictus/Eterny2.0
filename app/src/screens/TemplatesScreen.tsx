@@ -182,7 +182,6 @@ const TemplatesScreen: React.FC = () => {
       <ScrollView style={styles.content}>
         {templates.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📋</Text>
             <Text style={styles.emptyTitle}>No templates yet</Text>
             <Text style={styles.emptySubtitle}>
               Create your first day template to start planning your wellness schedule.
@@ -213,14 +212,14 @@ const TemplatesScreen: React.FC = () => {
                       style={styles.iconButton}
                       onPress={handleCreateTemplate}
                     >
-                      <Text style={styles.iconText}>✏️</Text>
+                      <Text style={styles.iconText}>Edit</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={() => (navigation as any).navigate('EditTimeBlocks', { template })}
                     >
-                      <Text style={styles.iconText}>📅</Text>
+                      <Text style={styles.iconText}>Schedule</Text>
                     </TouchableOpacity>
 
                     {!template.isDefault && (
@@ -228,7 +227,7 @@ const TemplatesScreen: React.FC = () => {
                         style={[styles.iconButton, styles.deleteIconButton]}
                         onPress={() => handleDelete(template)}
                       >
-                        <Text style={styles.iconText}>🗑️</Text>
+                        <Text style={styles.iconText}>Delete</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -238,7 +237,7 @@ const TemplatesScreen: React.FC = () => {
                   style={styles.viewScheduleButton}
                   onPress={() => handleViewSchedule(template)}
                 >
-                  <Text style={styles.viewScheduleButtonText}>👁️ View Schedule</Text>
+                  <Text style={styles.viewScheduleButtonText}>View Schedule</Text>
                 </TouchableOpacity>
 
                 {template.tags.length > 0 && (
@@ -288,7 +287,7 @@ const TemplatesScreen: React.FC = () => {
               style={styles.closeButton}
               onPress={() => setShowScheduleModal(false)}
             >
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
           
@@ -322,7 +321,7 @@ const TemplatesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -336,40 +335,36 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 64,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -377,14 +372,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   templateCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   templateHeader: {
     flexDirection: 'row',
@@ -399,12 +391,12 @@ const styles = StyleSheet.create({
   templateName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 4,
   },
   templateDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     lineHeight: 20,
   },
   templateActions: {
@@ -413,29 +405,31 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   iconText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   deleteIconButton: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#F5F5F5',
   },
   templateMeta: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
   },
   viewScheduleButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     padding: 12,
     borderRadius: 6,
     alignItems: 'center',
   },
   viewScheduleButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -444,7 +438,7 @@ const styles = StyleSheet.create({
   },
   tagsLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 6,
     fontWeight: '500',
   },
@@ -454,69 +448,72 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tagChip: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   tagText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
   },
   defaultBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   defaultBadgeText: {
     fontSize: 12,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '500',
   },
   addButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   addButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
   },
   closeButton: {
     padding: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   closeButtonText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   scheduleContainer: {
@@ -525,26 +522,26 @@ const styles = StyleSheet.create({
   scheduleBlock: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#E0E0E0',
   },
   scheduleBlockActive: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
   },
   scheduleBlockEmpty: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   scheduleTime: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 4,
   },
   scheduleActivity: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#000000',
     fontWeight: '500',
   },
   scheduleActivityEmpty: {
-    color: '#64748b',
+    color: '#333333',
   },
 });
 

@@ -196,7 +196,6 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={[styles.datePickerText, !profileData.dateOfBirth && styles.placeholderText]}>
                 {profileData.dateOfBirth || 'Select your date of birth'}
               </Text>
-              <Text style={styles.datePickerIcon}>📅</Text>
             </TouchableOpacity>
             
             {age && (
@@ -288,7 +287,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -298,7 +297,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   header: {
     flexDirection: 'row',
@@ -306,34 +305,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#E0E0E0',
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '500',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
   },
   saveButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#94a3b8',
+    backgroundColor: '#333333',
   },
   saveButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -342,20 +341,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
     marginVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 16,
   },
   formGroup: {
@@ -364,22 +360,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#000000',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#1f2937',
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
   },
   helpText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
     marginTop: 4,
   },
   genderContainer: {
@@ -392,38 +388,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
   },
   genderOptionSelected: {
-    borderColor: '#6366f1',
-    backgroundColor: '#f0f9ff',
+    borderColor: '#000000',
+    backgroundColor: '#F5F5F5',
   },
   radioButton: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonSelected: {
-    borderColor: '#6366f1',
+    borderColor: '#000000',
   },
   radioButtonInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
   },
   genderOptionText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#333333',
   },
   genderOptionTextSelected: {
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '500',
   },
   infoRow: {
@@ -432,39 +428,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#E0E0E0',
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#000000',
     fontWeight: '500',
   },
   datePickerButton: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   datePickerText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: '#000000',
   },
   placeholderText: {
-    color: '#94a3b8',
+    color: '#333333',
   },
   datePickerIcon: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   datePickerModal: {
     flex: 1,
@@ -473,9 +469,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   datePickerContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   datePickerHeader: {
     flexDirection: 'row',
@@ -485,17 +483,17 @@ const styles = StyleSheet.create({
   },
   datePickerCancel: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#333333',
     fontWeight: '500',
   },
   datePickerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
   },
   datePickerConfirm: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '500',
   },
   datePicker: {
@@ -510,12 +508,12 @@ const styles = StyleSheet.create({
   },
   ageLabel: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   ageText: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#000000',
     fontWeight: '500',
   },
 });

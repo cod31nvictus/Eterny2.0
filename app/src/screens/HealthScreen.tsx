@@ -21,10 +21,6 @@ const HealthScreen: React.FC = () => {
 
         {/* Coming Soon Section */}
         <View style={styles.comingSoonContainer}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.comingSoonIcon}>🚧</Text>
-          </View>
-          
           <Text style={styles.comingSoonTitle}>Coming Soon</Text>
           <Text style={styles.comingSoonDescription}>
             We're working on bringing you comprehensive health tracking features including:
@@ -33,32 +29,32 @@ const HealthScreen: React.FC = () => {
           {/* Feature List */}
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>💓</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Heart rate monitoring</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>😴</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Sleep quality tracking</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>🏃‍♂️</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Activity and fitness metrics</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>🧘‍♀️</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Stress and mindfulness insights</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>📊</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Health trends and analytics</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Text style={styles.featureBullet}>🎯</Text>
+              <Text style={styles.featureBullet}>●</Text>
               <Text style={styles.featureText}>Personalized health goals</Text>
             </View>
           </View>
@@ -80,57 +76,45 @@ const HealthScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   header: {
     alignItems: 'center',
     marginBottom: 32,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 24,
   },
   comingSoonContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 32,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  comingSoonIcon: {
-    fontSize: 48,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   comingSoonTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#6366f1',
+    color: '#000000',
     marginBottom: 12,
   },
   comingSoonDescription: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -146,18 +130,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   featureBullet: {
-    fontSize: 20,
+    fontSize: 16,
+    color: '#000000',
     marginRight: 12,
-    width: 32,
+    width: 20,
   },
   featureText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#333333',
     flex: 1,
   },
   stayTunedText: {
     fontSize: 14,
-    color: '#6366f1',
+    color: '#333333',
     fontWeight: '600',
     textAlign: 'center',
   },

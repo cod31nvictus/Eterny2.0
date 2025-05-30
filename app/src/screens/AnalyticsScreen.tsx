@@ -259,7 +259,7 @@ const AnalyticsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -273,12 +273,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 16,
   },
   timeRangeContainer: {
@@ -292,20 +292,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   timeRangeButtonActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
   },
   timeRangeButtonText: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   timeRangeButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
   overviewContainer: {
     marginBottom: 24,
@@ -316,24 +318,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 8,
   },
   scoreIndicator: {
@@ -343,7 +342,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   scoreText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -351,15 +350,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   wellnessScoreCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 24,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   wellnessScoreValue: {
     fontSize: 48,
@@ -368,18 +364,18 @@ const styles = StyleSheet.create({
   },
   wellnessScoreLabel: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 12,
   },
   wellnessBreakdown: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   breakdownText: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
   },
   categoryContainer: {
     marginBottom: 24,
@@ -388,14 +384,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   categoryCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -412,12 +405,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#1e293b',
+    color: '#000000',
   },
   categoryType: {
     fontSize: 12,
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
+    color: '#333333',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -426,7 +419,7 @@ const styles = StyleSheet.create({
   categoryTime: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 8,
   },
   progressBarContainer: {
@@ -437,7 +430,7 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     flex: 1,
     height: 8,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#E0E0E0',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -447,7 +440,7 @@ const styles = StyleSheet.create({
   },
   progressPercentage: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
     minWidth: 35,
     textAlign: 'right',
@@ -461,26 +454,23 @@ const styles = StyleSheet.create({
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   activityRank: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   activityRankText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -490,16 +480,16 @@ const styles = StyleSheet.create({
   activityName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 2,
   },
   activityTime: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
   },
   activityCount: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#333333',
   },
   trendsContainer: {
     marginBottom: 24,
@@ -510,24 +500,21 @@ const styles = StyleSheet.create({
   trendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   trendDate: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1e293b',
+    color: '#000000',
   },
   trendTime: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     marginRight: 12,
   },
   trendScore: {
@@ -538,7 +525,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trendScoreText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
