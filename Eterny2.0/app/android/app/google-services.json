@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "231231514086",
+    "project_id": "eterny",
+    "storage_bucket": "eterny.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231231514086:android:e0d6c8e73928a7ce",
+        "android_client_info": {
+          "package_name": "com.eterny"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eterny",
+            "certificate_hash": "c5b43099e7fae6b47f2c3e244865d7c5dae5d2bf"
+          }
+        },
+        {
+          "client_id": "231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTqxZjIlprmdVGDP1NRjcrBcv_OOdSffw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+} 

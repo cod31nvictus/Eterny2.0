@@ -15,10 +15,10 @@ const developmentConfig: EnvironmentConfig = {
 };
 
 const productionConfig: EnvironmentConfig = {
-  API_BASE_URL: process.env.REACT_APP_API_URL || 'https://api.eterny.com/api',
-  SYNC_BASE_URL: process.env.REACT_APP_API_URL?.replace('/api', '/sync') || 'https://api.eterny.com/sync',
-  AUTH_BASE_URL: process.env.REACT_APP_API_URL?.replace('/api', '/auth') || 'https://api.eterny.com/auth',
-  GOOGLE_WEB_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || '231231514086-1ltso6j58bnd6t8510tuf32j3jmbd0dk.apps.googleusercontent.com',
+  API_BASE_URL: 'http://eterny-app.ddns.net:3000/api',
+  SYNC_BASE_URL: 'http://eterny-app.ddns.net:3000/sync',
+  AUTH_BASE_URL: 'http://eterny-app.ddns.net:3000/auth',
+  GOOGLE_WEB_CLIENT_ID: '231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com',
 };
 
 export const config: EnvironmentConfig = isDevelopment ? developmentConfig : productionConfig;
