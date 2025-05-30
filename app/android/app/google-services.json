@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "231231514086-qkme0h92o72tr7i30kubr33rc138n1vg.apps.googleusercontent.com",
+          "client_id": "231231514086-pu1c14nac04e4nhpo8e56ng5vc1gum42.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.eterny",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "c5b43099e7fae6b47f2c3e244865d7c5dae5d2bf"
           }
         },
         {
