@@ -29,6 +29,9 @@ require('./config/passport');
 
 const app = express();
 
+// Trust proxy for nginx reverse proxy
+app.set('trust proxy', 1);
+
 // Force HTTPS in production
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
