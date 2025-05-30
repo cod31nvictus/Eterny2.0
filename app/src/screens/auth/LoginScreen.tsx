@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
 import config from '../../config/environment';
-import Logo from '../../components/Logo';
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -106,16 +106,13 @@ const LoginScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Logo/Header */}
         <View style={styles.header}>
-          <Logo size="large" variant="dark" />
-          <Text style={styles.subtitle}>Your Wellness Journey Starts Here</Text>
-        </View>
-
-        {/* Illustration */}
-        <View style={styles.illustration}>
-          <Text style={styles.emoji}>🌱</Text>
-          <Text style={styles.illustrationText}>
-            Plan, track, and optimize your daily wellness activities
-          </Text>
+          <Text style={styles.subtitle}>Your Complete Wellness App</Text>
+          <Image
+            source={require('../../assets/images/eterny-logo-black-cropped.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.tagline}>You. Forever.</Text>
         </View>
 
         {/* Google Sign In Button */}
@@ -125,7 +122,7 @@ const LoginScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <View style={styles.signInButtonContent}>
               <Text style={styles.googleIcon}>G</Text>
@@ -148,7 +145,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -161,53 +158,44 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     textAlign: 'center',
-    marginTop: 16,
-  },
-  illustration: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  emoji: {
-    fontSize: 64,
     marginBottom: 16,
   },
-  illustrationText: {
-    fontSize: 16,
-    color: '#64748b',
+  logo: {
+    width: 240,
+    height: 180,
+    marginTop: 24,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 18,
+    color: '#000000',
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 32,
+    fontWeight: '600',
+    marginBottom: 32,
   },
   signInButton: {
-    backgroundColor: '#4285f4',
+    backgroundColor: '#000000',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 32,
-    shadowColor: '#4285f4',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   signInButtonDisabled: {
-    backgroundColor: '#94a3b8',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: '#333333',
+    borderColor: '#E0E0E0',
   },
   signInButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   googleIcon: {
-    backgroundColor: '#fff',
-    color: '#4285f4',
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
     fontSize: 18,
     fontWeight: 'bold',
     width: 32,
@@ -218,7 +206,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   signInButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -227,7 +215,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 18,
   },

@@ -26,7 +26,7 @@ const Logo: React.FC<LogoProps> = ({
   };
 
   // Load the Eterny logo
-  const logoSource = require('../assets/images/eterny-logo.png');
+  const logoSource = require('../assets/images/eterny-logo-black-no-wordmark.png');
   
   return (
     <View style={[styles.container, style]}>

@@ -96,7 +96,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         ) : (
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../assets/images/eterny-logo.png')} 
+              source={require('../assets/images/eterny-logo-black-no-wordmark.png')} 
               style={styles.logo}
               resizeMode="contain"
             />

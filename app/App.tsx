@@ -5,14 +5,17 @@
  * @format
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator from './src/navigation/AppNavigator';
+import SplashScreen from './src/screens/SplashScreen';
 
 function App(): JSX.Element {
   console.log('🚀 App.tsx rendering...');
+  
+  const [showSplash, setShowSplash] = useState(true);
   
   // Initialize Google Sign-In
   useEffect(() => {
@@ -28,6 +31,14 @@ function App(): JSX.Element {
     });
     console.log('✅ Google Sign-In initialized');
   }, []);
+  
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+  
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
   
   return (
     <SafeAreaProvider>

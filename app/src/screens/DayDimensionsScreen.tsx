@@ -175,7 +175,7 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             style={styles.editButton}
             onPress={() => openModal(item)}
           >
-            <Text style={styles.editButtonText}>✏️</Text>
+            <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteButton}
@@ -183,7 +183,7 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             disabled={item.isDefault}
           >
             <Text style={[styles.deleteButtonText, item.isDefault && styles.disabledText]}>
-              {item.isDefault ? '🔒' : '🗑️'}
+              {item.isDefault ? 'Locked' : 'Delete'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -205,7 +205,7 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
       
       {item.isDefault && (
-        <Text style={styles.defaultLabel}>Default Dimension (Editable)</Text>
+        <Text style={styles.defaultLabel}>Default Dimension</Text>
       )}
     </View>
   );
@@ -213,7 +213,7 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>Loading day dimensions...</Text>
       </View>
     );
@@ -221,20 +221,10 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Day Dimensions</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Text style={styles.addButtonText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
-
       {dimensions.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No day dimensions found</Text>
-          <Text style={styles.emptySubtext}>Create your first day dimension to get started</Text>
+          <Text style={styles.emptySubtext}>Create your first dimension to get started</Text>
         </View>
       ) : (
         <FlatList
@@ -245,6 +235,11 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Add Button */}
+      <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
+        <Text style={styles.addButtonText}>+ Add Dimension</Text>
+      </TouchableOpacity>
 
       {/* Create/Edit Modal */}
       <Modal
@@ -336,66 +331,45 @@ const DayDimensionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#333333',
   },
   addButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: '#000000',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
   },
   addButtonText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
   list: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   dimensionItem: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     marginVertical: 8,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   dimensionHeader: {
     flexDirection: 'row',
@@ -406,7 +380,7 @@ const styles = StyleSheet.create({
   dimensionName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
     flex: 1,
   },
   dimensionActions: {
@@ -414,23 +388,37 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editButton: {
-    padding: 8,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   editButtonText: {
-    fontSize: 16,
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
   },
   deleteButton: {
-    padding: 8,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 14,
+    color: '#ef4444',
+    fontWeight: '500',
   },
   disabledText: {
     opacity: 0.5,
   },
   dimensionDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -440,7 +428,7 @@ const styles = StyleSheet.create({
   valuesLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#000000',
     marginBottom: 8,
   },
   valuesList: {
@@ -449,21 +437,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   valueChip: {
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: '#E0E0E0',
   },
   valueText: {
     fontSize: 12,
-    color: '#3730a3',
+    color: '#000000',
     fontWeight: '500',
   },
   defaultLabel: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#333333',
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -476,18 +464,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#64748b',
+    color: '#000000',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 20,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -495,22 +483,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#E0E0E0',
   },
   modalCancelText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
   },
   modalSaveText: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '600',
   },
   modalContent: {
@@ -524,18 +512,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#000000',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#1f2937',
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
   },
   textArea: {
     height: 80,
@@ -567,22 +555,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   removeValueText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
   addValueButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#F5F5F5',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderStyle: 'dashed',
+    borderColor: '#E0E0E0',
     alignItems: 'center',
   },
   addValueText: {
-    color: '#6366f1',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '600',
   },

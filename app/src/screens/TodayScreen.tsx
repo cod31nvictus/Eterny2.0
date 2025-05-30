@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
   FlatList,
+  Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -544,13 +545,14 @@ const TodayScreen = () => {
           onPress={handleSync}
           disabled={syncing}
         >
-          <Text style={[
-            styles.syncIcon,
-            syncing && styles.syncIconLoading,
-            syncStatus?.connected && styles.syncIconEnabled
-          ]}>
-            {syncing ? '⏳' : syncStatus?.connected ? (syncState.needsSync ? '🔄' : '✅') : '🔄'}
-          </Text>
+          <Image
+            source={require('../assets/images/sync.png')}
+            style={[
+              styles.syncIcon,
+              syncStatus?.connected && styles.syncIconEnabled
+            ]}
+            resizeMode="contain"
+          />
           <Text style={[
             styles.syncStatusText,
             syncStatus?.connected && styles.syncStatusTextEnabled
@@ -722,27 +724,23 @@ const styles = StyleSheet.create({
   syncButton: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 4,
   },
   syncButtonEnabled: {
-    backgroundColor: '#E7EDF3',
+    // Remove background color for enabled state
   },
   syncButtonLoading: {
     opacity: 0.6,
   },
   syncIcon: {
-    fontSize: 18,
+    width: 24,
+    height: 24,
     marginBottom: 2,
   },
   syncIconEnabled: {
-    fontSize: 18,
-  },
-  syncIconLoading: {
-    fontSize: 14,
+    opacity: 1,
   },
   templateSection: {
     marginBottom: 20,

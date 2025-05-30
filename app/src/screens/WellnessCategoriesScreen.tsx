@@ -31,18 +31,18 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
   // Form state
   const [name, setName] = useState('');
   const [type, setType] = useState<'wellness' | 'drain'>('wellness');
-  const [color, setColor] = useState('#6366f1');
+  const [color, setColor] = useState('#10b981');
   const [description, setDescription] = useState('');
 
   const predefinedColors = [
-    '#6366f1', // Purple
     '#10b981', // Green
-    '#f59e0b', // Yellow
     '#ef4444', // Red
+    '#f59e0b', // Yellow
     '#06b6d4', // Cyan
     '#8b5cf6', // Violet
     '#f97316', // Orange
     '#84cc16', // Lime
+    '#6366f1', // Purple
   ];
 
   const fetchCategories = async () => {
@@ -65,7 +65,7 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
   const resetForm = () => {
     setName('');
     setType('wellness');
-    setColor('#6366f1');
+    setColor('#10b981');
     setDescription('');
     setEditingCategory(null);
   };
@@ -144,7 +144,7 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>Loading categories...</Text>
       </View>
     );
@@ -152,20 +152,6 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Wellness Categories</Text>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Categories List */}
       <ScrollView style={styles.content}>
         {categories.length === 0 ? (
@@ -186,7 +172,7 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
                     styles.categoryType,
                     { color: category.type === 'wellness' ? '#10b981' : '#ef4444' }
                   ]}>
-                    {category.type === 'wellness' ? '✓ Wellness' : '⚠ Drain'}
+                    {category.type === 'wellness' ? 'Wellness' : 'Drain'}
                   </Text>
                   {category.description && (
                     <Text style={styles.categoryDescription}>{category.description}</Text>
@@ -211,6 +197,11 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
           ))
         )}
       </ScrollView>
+
+      {/* Add Button */}
+      <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+        <Text style={styles.addButtonText}>+ Add Category</Text>
+      </TouchableOpacity>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -320,56 +311,22 @@ const WellnessCategoriesScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  addButton: {
-    backgroundColor: '#6366f1',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#333333',
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -378,21 +335,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#000000',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: '#333333',
     textAlign: 'center',
   },
   categoryCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#E0E0E0',
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -412,7 +369,7 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
     marginBottom: 4,
   },
   categoryType: {
@@ -422,7 +379,7 @@ const styles = StyleSheet.create({
   },
   categoryDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     lineHeight: 20,
   },
   categoryActions: {
@@ -430,53 +387,71 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   editButton: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#F5F5F5',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   editButtonText: {
-    color: '#475569',
+    color: '#333333',
     fontSize: 14,
     fontWeight: '500',
   },
   deleteButton: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#F5F5F5',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   deleteButtonText: {
-    color: '#dc2626',
+    color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
   },
+  addButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: '#000000',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#E0E0E0',
   },
   modalCancelText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#000000',
   },
   modalSaveText: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '600',
   },
   modalContent: {
@@ -489,18 +464,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#000000',
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1e293b',
+    color: '#000000',
   },
   textArea: {
     height: 80,
@@ -511,25 +486,25 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginRight: 8,
   },
   typeButtonActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   typeButtonText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
     fontWeight: '500',
   },
   typeButtonTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   colorContainer: {
     flexDirection: 'row',
@@ -545,7 +520,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorOptionSelected: {
-    borderColor: '#374151',
+    borderColor: '#000000',
   },
 });
 
