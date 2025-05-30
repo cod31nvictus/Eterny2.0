@@ -366,48 +366,25 @@ const TodayScreen = () => {
         
         {block.activities.length > 0 && (
           <View style={styles.activitiesContainer}>
-            {block.activities.map((activity, activityIndex) => {
-              const wellnessColor = getWellnessColor(activity.wellnessTags);
-              return (
-                <View 
-                  key={activityIndex} 
-                  style={[
-                    styles.activityTag,
-                    { 
-                      backgroundColor: block.isPast 
-                        ? '#f3f4f6' 
-                        : block.isActive 
-                          ? `${wellnessColor}30`
-                          : `${wellnessColor}15`,
-                      borderColor: block.isPast 
-                        ? '#d1d5db' 
-                        : block.isActive 
-                          ? wellnessColor
-                          : `${wellnessColor}80`
-                    }
-                  ]}
-                >
-                  <Text style={[
-                    styles.activityTagText,
-                    { 
-                      color: block.isPast 
-                        ? '#9ca3af' 
-                        : block.isActive 
-                          ? wellnessColor
-                          : `${wellnessColor}CC`
-                    }
-                  ]}>
+            {block.activities.map((activity, activityIndex) => (
+              <View key={activityIndex} style={styles.activityItem}>
+                <Text style={styles.activityBullet}>●</Text>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityName}>
                     {activity.blockName || activity.name}
                   </Text>
+                  <Text style={styles.activityCategory}>
+                    {activity.wellnessTags?.[0] || 'General'}
+                  </Text>
                 </View>
-              );
-            })}
+              </View>
+            ))}
           </View>
         )}
         
         {block.isActive && (
           <View style={styles.activeIndicator}>
-            <Text style={styles.activeIndicatorText}>● ACTIVE NOW</Text>
+            <Text style={styles.activeIndicatorText}>CURRENT</Text>
           </View>
         )}
       </View>
@@ -430,63 +407,63 @@ const TodayScreen = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Today's Schedule</Text>
-            <Text style={styles.date}>
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={[
-              styles.syncButton,
-              syncing && styles.syncButtonLoading,
-              syncStatus?.connected && styles.syncButtonEnabled
-            ]}
-            onPress={handleSync}
-            disabled={syncing}
-          >
-            <Text style={[
-              styles.syncIcon,
-              syncing && styles.syncIconLoading,
-              syncStatus?.connected && styles.syncIconEnabled
-            ]}>
-              {syncing ? '⏳' : syncStatus?.connected ? '✅' : '🔄'}
-            </Text>
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Today's Schedule</Text>
+          <Text style={styles.date}>
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </Text>
         </View>
         
-        {templateInfo && (
-          <View style={styles.templateSection}>
-            <View style={styles.templateHeader}>
-              <Text style={styles.templateName}>{templateInfo.name}</Text>
-              <TouchableOpacity 
-                style={styles.changePlanButton}
-                onPress={handleChangePlan}
-              >
-                <Text style={styles.changePlanText}>Change Plan</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {templateInfo.dimensionValues && templateInfo.dimensionValues.length > 0 && (
-              <View style={styles.dimensionTags}>
-                {templateInfo.dimensionValues.map((dimValue, index) => (
-                  <View key={index} style={styles.dimensionTag}>
-                    <Text style={styles.dimensionTagText}>{dimValue.valueName}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
+        <TouchableOpacity 
+          style={[
+            styles.syncButton,
+            syncing && styles.syncButtonLoading,
+            syncStatus?.connected && styles.syncButtonEnabled
+          ]}
+          onPress={handleSync}
+          disabled={syncing}
+        >
+          <Text style={[
+            styles.syncIcon,
+            syncing && styles.syncIconLoading,
+            syncStatus?.connected && styles.syncIconEnabled
+          ]}>
+            {syncing ? '⏳' : syncStatus?.connected ? '✅' : '🔄'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
+      {templateInfo && (
+        <View style={styles.templateSection}>
+          <View style={styles.templateHeader}>
+            <Text style={styles.templateName}>{templateInfo.name}</Text>
+            <TouchableOpacity 
+              style={styles.changePlanButton}
+              onPress={handleChangePlan}
+            >
+              <Text style={styles.changePlanText}>Change Plan</Text>
+            </TouchableOpacity>
           </View>
-        )}
+          
+          {templateInfo.dimensionValues && templateInfo.dimensionValues.length > 0 && (
+            <View style={styles.dimensionTags}>
+              {templateInfo.dimensionValues.map((dimValue, index) => (
+                <View key={index} style={styles.dimensionTag}>
+                  <Text style={styles.dimensionTagText}>{dimValue.valueName}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
+      <View style={styles.content}>
         {scheduleBlocks.length > 0 ? (
           <View style={styles.scheduleContainer}>
             {scheduleBlocks.map((block, index) => renderScheduleBlock(block, index))}
@@ -582,7 +559,7 @@ const TodayScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -596,163 +573,167 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   content: {
-    padding: 20,
+    flex: 1,
+    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
   },
   headerLeft: {
     flex: 1,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  date: {
-    fontSize: 16,
-    color: '#64748b',
+    color: '#000000',
+    letterSpacing: -0.015,
     marginBottom: 4,
   },
+  date: {
+    fontSize: 14,
+    color: '#333333',
+    lineHeight: 20,
+  },
+  syncButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  syncButtonEnabled: {
+    backgroundColor: '#E7EDF3',
+  },
+  syncButtonLoading: {
+    opacity: 0.6,
+  },
+  syncIcon: {
+    fontSize: 20,
+  },
+  syncIconEnabled: {
+    fontSize: 20,
+  },
+  syncIconLoading: {
+    fontSize: 16,
+  },
   templateSection: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 20,
+    paddingHorizontal: 16,
   },
   templateHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   templateName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
+    flex: 1,
   },
   changePlanButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#6366f1',
-    borderRadius: 6,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
   },
   changePlanText: {
-    color: '#6366f1',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
   },
   dimensionTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   dimensionTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#f0f9ff',
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   dimensionTagText: {
-    color: '#0369a1',
-    fontSize: 11,
+    fontSize: 12,
+    color: '#333333',
     fontWeight: '500',
   },
-  syncButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-  },
-  syncIcon: {
-    fontSize: 18,
-    color: '#6366f1',
-  },
-  syncButtonLoading: {
-    backgroundColor: '#fef3c7',
-  },
-  syncButtonEnabled: {
-    backgroundColor: '#dcfce7',
-  },
-  syncIconLoading: {
-    color: '#f59e0b',
-  },
-  syncIconEnabled: {
-    color: '#16a34a',
-  },
   scheduleContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#FFFFFF',
   },
   scheduleBlock: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    backgroundColor: '#fff',
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
   },
   scheduleBlockPast: {
-    backgroundColor: '#f8f9fa',
-    opacity: 0.6,
+    backgroundColor: '#F5F5F5',
+    opacity: 0.7,
   },
   scheduleBlockCurrent: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#F0F9FF',
     borderLeftWidth: 4,
-    borderLeftColor: '#0ea5e9',
-    shadowColor: '#0ea5e9',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderLeftColor: '#000000',
   },
   scheduleBlockUpcoming: {
-    backgroundColor: '#fafbfc',
+    backgroundColor: '#FFFFFF',
   },
   scheduleTime: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#333333',
     marginBottom: 8,
     fontWeight: '500',
   },
   scheduleTimeCurrent: {
-    color: '#0ea5e9',
-    fontWeight: '700',
+    color: '#000000',
+    fontWeight: 'bold',
   },
   scheduleTimePast: {
-    color: '#9ca3af',
+    color: '#333333',
     fontWeight: '400',
   },
   scheduleTimeUpcoming: {
-    color: '#64748b',
-    fontWeight: '400',
-  },
-  activitiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  activityTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  activityTagText: {
-    fontSize: 14,
+    color: '#333333',
     fontWeight: '500',
   },
+  activitiesContainer: {
+    marginBottom: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  activityBullet: {
+    fontSize: 16,
+    color: '#000000',
+    marginRight: 12,
+    width: 20,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  activityCategory: {
+    fontSize: 14,
+    color: '#333333',
+    lineHeight: 20,
+  },
   activeIndicator: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: '#000000',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -760,54 +741,57 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   activeIndicatorText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   emptyContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     marginTop: 40,
+    marginHorizontal: 16,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: 14,
+    color: '#333333',
     textAlign: 'center',
+    lineHeight: 20,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: '#64748b',
+    borderBottomColor: '#E0E0E0',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#000000',
   },
-  modalPlaceholder: {
-    width: 60,
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '500',
   },
   modalContent: {
     flex: 1,
@@ -893,6 +877,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalPlaceholder: {
+    width: 60,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#64748b',
   },
 });
 

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import LoginScreen from '../screens/auth/LoginScreen';
 import NowScreen from '../screens/NowScreen';
 import TodayScreen from '../screens/TodayScreen';
+import HealthScreen from '../screens/HealthScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import TemplatesScreen from '../screens/TemplatesScreen';
 import CreateTemplateScreen from '../screens/CreateTemplateScreen';
@@ -21,27 +22,148 @@ import ProgressScreen from '../screens/ProgressScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
-import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Text, Image } from 'react-native';
 import api from '../services/api';
+import AppHeader from '../components/AppHeader';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tab Navigator for main screens (Now, Today, Report, Templates)
+// Custom Header Component for different screens
+const CustomHeader = ({ route, navigation }: any) => {
+  const getHeaderTitle = () => {
+    switch (route.name) {
+      case 'MainTabs':
+        // For tab screens, we'll determine the title based on the active tab
+        const state = route.state;
+        if (state && state.routes && state.routes[state.index]) {
+          const activeTab = state.routes[state.index].name;
+          switch (activeTab) {
+            case 'Now':
+              return 'Right Now';
+            case 'Schedule':
+              return "Today's Schedule";
+            case 'Health':
+              return 'Health';
+            case 'Wellness':
+              return 'Analytics';
+            default:
+              return 'Eterny';
+          }
+        }
+        return 'Eterny';
+      case 'Templates':
+        return 'Day Templates';
+      case 'CreateTemplate':
+        return 'Create Template';
+      case 'EditTimeBlocks':
+        return 'Edit Time Blocks';
+      case 'Calendar':
+        return 'Plan Calendar';
+      case 'WellnessCategories':
+        return 'Wellness Categories';
+      case 'ActivityTypes':
+        return 'Activity Types';
+      case 'DayDimensions':
+        return 'Day Dimensions';
+      case 'Categories':
+        return 'Categories';
+      case 'Activities':
+        return 'Activities';
+      case 'Settings':
+        return 'Settings';
+      case 'Progress':
+        return 'Progress';
+      case 'Dashboard':
+        return 'Dashboard';
+      case 'Profile':
+        return 'Profile';
+      default:
+        return 'Eterny';
+    }
+  };
+
+  const isMainTabs = route.name === 'MainTabs';
+  
+  return (
+    <AppHeader 
+      title={getHeaderTitle()}
+      showBackButton={!isMainTabs}
+      onBackPress={!isMainTabs ? () => navigation.goBack() : undefined}
+    />
+  );
+};
+
+// Custom Tab Icon Component
+const TabIcon = ({ iconName, color, size }: { iconName: string; color: string; size: number }) => {
+  const getIconSource = () => {
+    switch (iconName) {
+      case 'now':
+        return null; // Keep the current dot icon
+      case 'schedule':
+        return require('../assets/images/eterny-sun.png');
+      case 'health':
+        return require('../assets/images/eterny-heart.png');
+      case 'wellness':
+        return require('../assets/images/eterny-infinity.png');
+      default:
+        return null;
+    }
+  };
+
+  const getIconSize = () => {
+    // Make heart icon 75% of normal size
+    if (iconName === 'health') {
+      return size * 0.75;
+    }
+    return size;
+  };
+
+  const iconSource = getIconSource();
+  const iconSize = getIconSize();
+
+  if (iconSource) {
+    return (
+      <View style={styles.tabIconContainer}>
+        <Image 
+          source={iconSource} 
+          style={[
+            styles.tabIconImage, 
+            { 
+              width: iconSize, 
+              height: iconSize,
+              tintColor: color 
+            }
+          ]} 
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
+  // Fallback for 'now' icon (dot)
+  return (
+    <View style={styles.tabIconContainer}>
+      <Text style={[styles.tabIconText, { color }]}>●</Text>
+    </View>
+  );
+};
+
+// Tab Navigator for main screens (Now, Schedule, Health, Wellness)
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
+        borderTopColor: '#E0E0E0',
         paddingBottom: 8,
         paddingTop: 8,
         height: 70,
       },
-      tabBarActiveTintColor: '#6366f1',
-      tabBarInactiveTintColor: '#64748b',
+      tabBarActiveTintColor: '#000000',
+      tabBarInactiveTintColor: '#333333',
       tabBarLabelStyle: {
         fontSize: 12,
         fontWeight: '600',
@@ -54,45 +176,37 @@ const TabNavigator = () => (
       options={{
         tabBarLabel: 'Now',
         tabBarIcon: ({ color, size }) => (
-          <View style={[styles.tabIcon, { backgroundColor: color + '20' }]}>
-            <Text style={[styles.tabIconText, { color }]}>●</Text>
-          </View>
+          <TabIcon iconName="now" color={color} size={size} />
         ),
       }}
     />
     <Tab.Screen 
-      name="Today" 
+      name="Schedule" 
       component={TodayScreen}
       options={{
-        tabBarLabel: 'Today',
+        tabBarLabel: 'Schedule',
         tabBarIcon: ({ color, size }) => (
-          <View style={[styles.tabIcon, { backgroundColor: color + '20' }]}>
-            <Text style={[styles.tabIconText, { color }]}>📅</Text>
-          </View>
+          <TabIcon iconName="schedule" color={color} size={size} />
         ),
       }}
     />
     <Tab.Screen 
-      name="Report" 
+      name="Health" 
+      component={HealthScreen}
+      options={{
+        tabBarLabel: 'Health',
+        tabBarIcon: ({ color, size }) => (
+          <TabIcon iconName="health" color={color} size={size} />
+        ),
+      }}
+    />
+    <Tab.Screen 
+      name="Wellness" 
       component={AnalyticsScreen}
       options={{
-        tabBarLabel: 'Report',
+        tabBarLabel: 'Wellness',
         tabBarIcon: ({ color, size }) => (
-          <View style={[styles.tabIcon, { backgroundColor: color + '20' }]}>
-            <Text style={[styles.tabIconText, { color }]}>📊</Text>
-          </View>
-        ),
-      }}
-    />
-    <Tab.Screen 
-      name="Templates" 
-      component={TemplatesScreen}
-      options={{
-        tabBarLabel: 'Templates',
-        tabBarIcon: ({ color, size }) => (
-          <View style={[styles.tabIcon, { backgroundColor: color + '20' }]}>
-            <Text style={[styles.tabIconText, { color }]}>📋</Text>
-          </View>
+          <TabIcon iconName="wellness" color={color} size={size} />
         ),
       }}
     />
@@ -103,90 +217,72 @@ const TabNavigator = () => (
 const MainStackNavigator = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: {
-        backgroundColor: '#6366f1',
-      },
-      headerTintColor: '#fff',
-      headerTitleStyle: {
-        fontWeight: 'bold',
-      },
+      header: ({ route, navigation }) => <CustomHeader route={route} navigation={navigation} />,
     }}
   >
     <Stack.Screen 
       name="MainTabs" 
       component={TabNavigator}
-      options={{ 
-        title: 'Eterny',
-        headerTitle: 'Eterny'
-      }}
     />
     
     {/* Template Management Screens */}
     <Stack.Screen 
+      name="Templates" 
+      component={TemplatesScreen}
+    />
+    <Stack.Screen 
       name="CreateTemplate" 
       component={CreateTemplateScreen}
-      options={{ title: 'Create Template' }}
     />
     <Stack.Screen 
       name="EditTimeBlocks" 
       component={EditTimeBlocksScreen}
-      options={{ title: 'Edit Time Blocks' }}
     />
     
     {/* Calendar and Planning Screens */}
     <Stack.Screen 
       name="Calendar" 
       component={CalendarScreen}
-      options={{ title: 'Plan Calendar' }}
     />
     
     {/* Configuration Screens */}
     <Stack.Screen 
       name="WellnessCategories" 
       component={WellnessCategoriesScreen}
-      options={{ title: 'Wellness Categories' }}
     />
     <Stack.Screen 
       name="ActivityTypes" 
       component={ActivityTypesScreen}
-      options={{ title: 'Activity Types' }}
     />
     <Stack.Screen 
       name="DayDimensions" 
       component={DayDimensionsScreen}
-      options={{ title: 'Day Dimensions' }}
     />
     <Stack.Screen 
       name="Categories" 
       component={CategoriesScreen}
-      options={{ title: 'Categories' }}
     />
     <Stack.Screen 
       name="Activities" 
       component={ActivitiesScreen}
-      options={{ title: 'Activities' }}
     />
     
     {/* Other Screens */}
     <Stack.Screen 
       name="Settings" 
       component={SettingsScreen}
-      options={{ title: 'Settings' }}
     />
     <Stack.Screen 
       name="Progress" 
       component={ProgressScreen}
-      options={{ title: 'Progress' }}
     />
     <Stack.Screen 
       name="Dashboard" 
       component={DashboardScreen}
-      options={{ title: 'Dashboard' }}
     />
     <Stack.Screen 
       name="Profile" 
       component={ProfileScreen}
-      options={{ title: 'Profile' }}
     />
   </Stack.Navigator>
 );
@@ -266,23 +362,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
+    color: '#333333',
   },
-  tabIcon: {
+  tabIconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   tabIconText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  tabIconImage: {
+    // Image sizing handled by props
   },
 });
 

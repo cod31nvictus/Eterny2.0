@@ -10,6 +10,7 @@ import {
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
 import config from '../../config/environment';
+import Logo from '../../components/Logo';
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -105,7 +106,7 @@ const LoginScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Logo/Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Eterny</Text>
+          <Logo size="large" variant="dark" />
           <Text style={styles.subtitle}>Your Wellness Journey Starts Here</Text>
         </View>
 
@@ -158,16 +159,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
   subtitle: {
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
+    marginTop: 16,
   },
   illustration: {
     alignItems: 'center',

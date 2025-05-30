@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 
 const SettingsScreen: React.FC = () => {
   const { user, logout } = useAuth();
@@ -224,7 +225,7 @@ const SettingsScreen: React.FC = () => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Eterny - Your Wellness Journey</Text>
+          <Logo size="medium" variant="dark" showText={true} />
           <Text style={styles.footerSubtext}>Made with ❤️ for your wellbeing</Text>
         </View>
       </ScrollView>
@@ -358,12 +359,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
     paddingHorizontal: 20,
-  },
-  footerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6366f1',
-    marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 14,
