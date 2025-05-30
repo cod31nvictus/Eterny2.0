@@ -40,6 +40,12 @@ interface ScheduleBlock {
   isPast: boolean;
 }
 
+interface SyncState {
+  lastSyncTime: string | null;
+  lastSyncHash: string | null;
+  needsSync: boolean;
+}
+
 const { width: screenWidth } = Dimensions.get('window');
 
 const TodayScreen = () => {
@@ -54,6 +60,11 @@ const TodayScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{ enabled: boolean; connected: boolean; message: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>({
+    lastSyncTime: null,
+    lastSyncHash: null,
+    needsSync: false,
+  });
 
   const formatTime = (time: string) => {
     // Remove seconds if present and format as HH:MM
@@ -214,6 +225,9 @@ const TodayScreen = () => {
         // Only show blocks that have activities
         const blocksWithActivities = fullSchedule.filter(block => block.hasActivity);
         setScheduleBlocks(blocksWithActivities);
+        
+        // Check if sync is needed after setting the schedule
+        checkSyncNeeded(blocksWithActivities);
       }
     } catch (error) {
       console.error('Error fetching today schedule:', error);
@@ -257,6 +271,12 @@ const TodayScreen = () => {
       setTemplateInfo(template);
       setChangePlanModalVisible(false);
       fetchTodaySchedule();
+      
+      // Mark sync as needed since schedule changed
+      saveSyncState({
+        ...syncState,
+        needsSync: true,
+      });
     } catch (error) {
       console.error('Error assigning template:', error);
       Alert.alert('Error', 'Failed to assign template');
@@ -290,6 +310,17 @@ const TodayScreen = () => {
       return;
     }
 
+    // Check if sync is needed
+    const needsSync = checkSyncNeeded(scheduleBlocks);
+    if (!needsSync) {
+      Alert.alert(
+        'Already Synced',
+        'Your schedule is already up to date with Google Calendar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setSyncing(true);
       const today = new Date().toISOString().split('T')[0];
@@ -300,6 +331,9 @@ const TodayScreen = () => {
       }
       
       const result = await api.calendar.syncToday(today);
+      
+      // Mark as synced after successful sync
+      markAsSynced();
       
       Alert.alert(
         'Sync Complete',
@@ -321,6 +355,7 @@ const TodayScreen = () => {
   useEffect(() => {
     fetchTodaySchedule();
     checkSyncStatus();
+    loadSyncState();
   }, []);
 
   useEffect(() => {
@@ -338,6 +373,13 @@ const TodayScreen = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Check sync status whenever schedule blocks change
+  useEffect(() => {
+    if (scheduleBlocks.length > 0) {
+      checkSyncNeeded(scheduleBlocks);
+    }
+  }, [scheduleBlocks, syncState.lastSyncHash]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -391,6 +433,79 @@ const TodayScreen = () => {
     );
   };
 
+  // Generate a hash of the current schedule for sync tracking
+  const generateScheduleHash = (blocks: ScheduleBlock[]) => {
+    const scheduleData = blocks
+      .filter(block => block.hasActivity)
+      .map(block => ({
+        startTime: block.startTime,
+        endTime: block.endTime,
+        activities: block.activities.map(activity => ({
+          name: activity.name,
+          blockName: activity.blockName,
+          wellnessTags: activity.wellnessTags.sort(),
+        })).sort((a, b) => a.name.localeCompare(b.name))
+      }))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    
+    return JSON.stringify(scheduleData);
+  };
+
+  // Load sync state from AsyncStorage
+  const loadSyncState = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const syncStateKey = `syncState_${today}`;
+      const savedState = await AsyncStorage.getItem(syncStateKey);
+      
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        setSyncState(parsedState);
+      }
+    } catch (error) {
+      console.error('Error loading sync state:', error);
+    }
+  };
+
+  // Save sync state to AsyncStorage
+  const saveSyncState = async (newState: SyncState) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const syncStateKey = `syncState_${today}`;
+      await AsyncStorage.setItem(syncStateKey, JSON.stringify(newState));
+      setSyncState(newState);
+    } catch (error) {
+      console.error('Error saving sync state:', error);
+    }
+  };
+
+  // Check if sync is needed by comparing current schedule with last synced version
+  const checkSyncNeeded = (blocks: ScheduleBlock[]) => {
+    const currentHash = generateScheduleHash(blocks);
+    const needsSync = !syncState.lastSyncHash || syncState.lastSyncHash !== currentHash;
+    
+    if (needsSync !== syncState.needsSync) {
+      saveSyncState({
+        ...syncState,
+        needsSync,
+      });
+    }
+    
+    return needsSync;
+  };
+
+  // Mark schedule as synced
+  const markAsSynced = () => {
+    const currentHash = generateScheduleHash(scheduleBlocks);
+    const now = new Date().toISOString();
+    
+    saveSyncState({
+      lastSyncTime: now,
+      lastSyncHash: currentHash,
+      needsSync: false,
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -434,7 +549,13 @@ const TodayScreen = () => {
             syncing && styles.syncIconLoading,
             syncStatus?.connected && styles.syncIconEnabled
           ]}>
-            {syncing ? '⏳' : syncStatus?.connected ? '✅' : '🔄'}
+            {syncing ? '⏳' : syncStatus?.connected ? (syncState.needsSync ? '🔄' : '✅') : '🔄'}
+          </Text>
+          <Text style={[
+            styles.syncStatusText,
+            syncStatus?.connected && styles.syncStatusTextEnabled
+          ]}>
+            {syncing ? 'Syncing...' : syncStatus?.connected ? (syncState.needsSync ? 'Sync Now' : 'Synced') : 'Not Connected'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -599,12 +720,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   syncButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 4,
   },
   syncButtonEnabled: {
     backgroundColor: '#E7EDF3',
@@ -613,13 +735,14 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   syncIcon: {
-    fontSize: 20,
+    fontSize: 18,
+    marginBottom: 2,
   },
   syncIconEnabled: {
-    fontSize: 20,
+    fontSize: 18,
   },
   syncIconLoading: {
-    fontSize: 16,
+    fontSize: 14,
   },
   templateSection: {
     marginBottom: 20,
@@ -884,6 +1007,16 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     color: '#64748b',
+  },
+  syncStatusText: {
+    fontSize: 10,
+    color: '#333333',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  syncStatusTextEnabled: {
+    color: '#000000',
+    fontWeight: '600',
   },
 });
 
