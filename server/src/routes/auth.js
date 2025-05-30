@@ -63,7 +63,7 @@ router.post('/google/mobile', async (req, res) => {
     // Verify the ID token using the mobile client
     const ticket = await mobileClient.verifyIdToken({
       idToken: idToken,
-      audience: process.env.GOOGLE_ANDROID_CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
     
     const payload = ticket.getPayload();
