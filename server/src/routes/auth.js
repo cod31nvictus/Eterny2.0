@@ -6,8 +6,11 @@ const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const router = express.Router();
 
-// Initialize Google OAuth2 client
+// Initialize Google OAuth2 client for backend (web)
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Initialize Google OAuth2 client for mobile (Android)
+const mobileClient = new OAuth2Client(process.env.GOOGLE_ANDROID_CLIENT_ID);
 
 // Health check endpoint
 router.get('/status', (req, res) => {
@@ -57,10 +60,10 @@ router.post('/google/mobile', async (req, res) => {
       return res.status(400).json({ error: 'ID token is required' });
     }
 
-    // Verify the ID token
-    const ticket = await client.verifyIdToken({
+    // Verify the ID token using the mobile client
+    const ticket = await mobileClient.verifyIdToken({
       idToken: idToken,
-      audience: process.env.GOOGLE_ANDROID_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.GOOGLE_ANDROID_CLIENT_ID,
     });
     
     const payload = ticket.getPayload();
