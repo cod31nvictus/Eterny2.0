@@ -11,6 +11,7 @@ import { View, Text } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreen from './src/screens/SplashScreen';
+import { ToDoProvider } from './src/contexts/ToDoContext';
 
 function App(): JSX.Element {
   console.log('🚀 App.tsx rendering...');
@@ -42,7 +43,9 @@ function App(): JSX.Element {
   
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <ToDoProvider>
+        <AppNavigator />
+      </ToDoProvider>
     </SafeAreaProvider>
   );
 }
