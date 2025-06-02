@@ -8,6 +8,8 @@ import {
   RefreshControl,
   ImageBackground,
   Animated,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -462,6 +464,53 @@ const NowScreen = ({ navigation }: any) => {
         </View>
       </View>
 
+      {/* Quick Access Menu */}
+      <View style={styles.quickAccessContainer}>
+        <View style={styles.quickAccessGrid}>
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('HabitTracker')}
+          >
+            <View style={styles.quickAccessIcon}>
+              <Image 
+                source={require('../assets/images/Habit Tracker.png')} 
+                style={styles.quickAccessIconImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.quickAccessText}>Habit Tracker</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('MenuBuilder')}
+          >
+            <View style={styles.quickAccessIcon}>
+              <Image 
+                source={require('../assets/images/Menu Builder.png')} 
+                style={styles.quickAccessIconImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.quickAccessText}>Menu Builder</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('ToDo')}
+          >
+            <View style={styles.quickAccessIcon}>
+              <Image 
+                source={require('../assets/images/To Do.png')} 
+                style={styles.quickAccessIconImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.quickAccessText}>To Do</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -681,6 +730,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333333',
     marginLeft: 8,
+  },
+  quickAccessContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  quickAccessGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  quickAccessButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    flex: 1,
+  },
+  quickAccessIcon: {
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickAccessIconImage: {
+    width: 32,
+    height: 32,
+  },
+  quickAccessText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333333',
+    textAlign: 'center',
   },
 });
 

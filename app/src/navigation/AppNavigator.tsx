@@ -22,6 +22,9 @@ import ProgressScreen from '../screens/ProgressScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
+import HabitTrackerScreen from '../screens/HabitTrackerScreen';
+import MenuBuilderScreen from '../screens/MenuBuilderScreen';
+import ToDoScreen from '../screens/ToDoScreen';
 import { ActivityIndicator, View, StyleSheet, Text, Image } from 'react-native';
 import api from '../services/api';
 import AppHeader from '../components/AppHeader';
@@ -78,6 +81,12 @@ const CustomHeader = ({ route, navigation }: any) => {
         return 'Dashboard';
       case 'Profile':
         return 'Profile';
+      case 'HabitTracker':
+        return 'Habit Tracker';
+      case 'MenuBuilder':
+        return 'Menu Builder';
+      case 'ToDo':
+        return 'To Do';
       default:
         return 'Eterny';
     }
@@ -283,6 +292,20 @@ const MainStackNavigator = () => (
     <Stack.Screen 
       name="Profile" 
       component={ProfileScreen}
+    />
+    
+    {/* Quick Access Screens */}
+    <Stack.Screen 
+      name="HabitTracker" 
+      component={HabitTrackerScreen}
+    />
+    <Stack.Screen 
+      name="MenuBuilder" 
+      component={MenuBuilderScreen}
+    />
+    <Stack.Screen 
+      name="ToDo" 
+      component={ToDoScreen}
     />
   </Stack.Navigator>
 );
