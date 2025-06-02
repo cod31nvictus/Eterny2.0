@@ -133,16 +133,14 @@ const ToDoItem: React.FC<ToDoItemProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Delete button (only show for completed items or on long press) */}
-      {todo.completed && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => onDelete(todo._id)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.deleteButtonText}>×</Text>
-        </TouchableOpacity>
-      )}
+      {/* Delete button */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => onDelete(todo._id)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.deleteButtonText}>×</Text>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -221,15 +219,13 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
-    borderRadius: 16,
     marginLeft: 8,
   },
   deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    color: '#000000',
+    fontSize: 18,
     fontWeight: 'bold',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });
 

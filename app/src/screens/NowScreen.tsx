@@ -12,6 +12,8 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useToDoContext } from '../contexts/ToDoContext';
+import ToDoItem from '../components/ToDoItem';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config/environment';
 
@@ -57,6 +59,7 @@ interface PlannedDay {
 const NowScreen = ({ navigation }: any) => {
   console.log('🎯 NowScreen component is loading with Galileo design adaptation!');
   const { user } = useAuth();
+  const { todos, fetchTodos, toggleComplete, deleteTodo } = useToDoContext();
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
   const [nextBlocks, setNextBlocks] = useState<Block[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
@@ -64,6 +67,7 @@ const NowScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [allTimeBlocks, setAllTimeBlocks] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [todayDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Background image rotation state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -348,6 +352,11 @@ const NowScreen = ({ navigation }: any) => {
     return () => clearInterval(interval);
   }, [currentBlock]);
 
+  // Fetch today's todos
+  useEffect(() => {
+    fetchTodos(todayDate);
+  }, [fetchTodos, todayDate]);
+
   // Background image rotation effect
   useEffect(() => {
     const imageRotationInterval = setInterval(() => {
@@ -360,6 +369,16 @@ const NowScreen = ({ navigation }: any) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchTodaySchedule();
+    fetchTodos(todayDate);
+  };
+
+  // Todo handlers
+  const handleToggleComplete = async (id: string) => {
+    await toggleComplete(id);
+  };
+
+  const handleDeleteTodo = async (id: string) => {
+    await deleteTodo(id);
   };
 
   const ActivityCard = ({ activity, isUpcoming = false, timeInfo }: { 
@@ -555,6 +574,27 @@ const NowScreen = ({ navigation }: any) => {
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>No scheduled activity right now</Text>
             <Text style={styles.emptyStateSubtext}>Enjoy your free time!</Text>
+          </View>
+        )}
+
+        {/* To-Do Section */}
+        {todos.filter(todo => !todo.completed).length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Today's Tasks</Text>
+            </View>
+            
+            {todos
+              .filter(todo => !todo.completed)
+              .map((todo) => (
+                <ToDoItem
+                  key={todo._id}
+                  todo={todo}
+                  onToggleComplete={handleToggleComplete}
+                  onDelete={handleDeleteTodo}
+                />
+              ))
+            }
           </View>
         )}
 
