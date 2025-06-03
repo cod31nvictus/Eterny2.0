@@ -17,25 +17,26 @@ const calculateStreak = async (habitId, userId) => {
 
   let streak = 0;
   let currentDate = new Date(today);
-  let foundIncompleteDay = false;
 
   // Go backwards from today
-  while (!foundIncompleteDay) {
+  while (true) {
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
 
-    // Check if this day should be tracked
+    // Check if this day should be tracked for this habit
     if (habit.trackingDays.includes(dayOfWeek)) {
       const record = trackingRecords.find(r => r.date === dateStr);
       
       if (record && record.completed) {
+        // Day was tracked and completed - continue streak
         streak++;
       } else {
-        // Day was supposed to be tracked but wasn't completed
-        foundIncompleteDay = true;
+        // Day should have been tracked but wasn't completed OR not tracked at all
+        // This breaks the streak - stop counting
         break;
       }
     }
+    // If day is not in trackingDays, skip it (don't break streak)
 
     // Move to previous day
     currentDate.setDate(currentDate.getDate() - 1);

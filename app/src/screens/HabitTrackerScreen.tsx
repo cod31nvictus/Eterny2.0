@@ -155,11 +155,13 @@ const HabitTrackerScreen: React.FC = () => {
   };
 
   const toggleDay = (dayIndex: number) => {
-    setSelectedDays(prev => 
-      prev.includes(dayIndex)
-        ? prev.filter(d => d !== dayIndex)
-        : [...prev, dayIndex]
-    );
+    setSelectedDays(prev => {
+      // Remove duplicates by using Set
+      const uniqueDays = [...new Set(prev)];
+      return uniqueDays.includes(dayIndex)
+        ? uniqueDays.filter(d => d !== dayIndex)
+        : [...uniqueDays, dayIndex].sort((a, b) => a - b); // Keep sorted order
+    });
   };
 
   const handleAddHabit = async () => {
@@ -634,7 +636,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
     textAlign: 'center',
-    marginBottom: 16,
   },
   weekHeader: {
     flexDirection: 'row',
