@@ -229,7 +229,15 @@ const HabitTrackerScreen: React.FC = () => {
   };
 
   const formatMonth = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    
+    return `${month} ${year}`;
   };
 
   const formatSelectedDate = (date: Date) => {
@@ -345,13 +353,22 @@ const HabitTrackerScreen: React.FC = () => {
               key={habit._id}
               habit={habit}
               onInfoPress={() => handleInfoPress(habit)}
-              onToggle={() => {
+              onToggle={async () => {
                 const dateString = selectedDate.toISOString().split('T')[0];
-                toggleHabitTracking(habit._id, dateString).then((success) => {
-                  if (success) {
-                    fetchHabitsForDate(selectedDate);
+                const success = await toggleHabitTracking(habit._id, dateString);
+                if (success) {
+                  // Refresh the habits for the selected date to get updated completion status
+                  await fetchHabitsForDate(selectedDate);
+                  
+                  // If we tracked for today, also refresh today's habits
+                  const today = new Date().toISOString().split('T')[0];
+                  if (dateString === today) {
+                    await fetchTodayHabits();
                   }
-                });
+                  
+                  // Always refresh the global habits list to update streaks
+                  await fetchHabits();
+                }
               }}
             />
           ))}

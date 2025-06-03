@@ -192,7 +192,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       if (response.ok) {
         const result = await response.json();
         
-        // Update today habits if tracking today
+        // ONLY update today habits if we're actually tracking for today
         const today = new Date().toISOString().split('T')[0];
         if (date === today) {
           setTodayHabits(prev => 
@@ -208,7 +208,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
           );
         }
 
-        // Update all habits streak
+        // Always update the global habits streak since it affects all dates
         setHabits(prev => 
           prev.map(habit => 
             habit._id === habitId 

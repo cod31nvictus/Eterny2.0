@@ -9,39 +9,45 @@ const calculateStreak = async (habitId, userId) => {
   const habit = await Habit.findById(habitId);
   if (!habit) return 0;
 
-  const today = new Date();
+  // Get all tracking records for this habit, sorted by date descending
   const trackingRecords = await HabitTracking.find({
     habitId,
-    userId
+    userId,
+    completed: true  // Only get completed records
   }).sort({ date: -1 });
 
-  let streak = 0;
-  let currentDate = new Date(today);
+  if (trackingRecords.length === 0) return 0;
 
-  // Go backwards from today
-  while (true) {
+  let streak = 0;
+  let currentDate = new Date(); // Start from today
+  let foundGap = false;
+
+  // Go backwards from today to find the current streak
+  while (!foundGap) {
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
 
     // Check if this day should be tracked for this habit
     if (habit.trackingDays.includes(dayOfWeek)) {
-      const record = trackingRecords.find(r => r.date === dateStr);
+      // Find if there's a completed record for this date
+      const hasCompletedRecord = trackingRecords.some(r => r.date === dateStr);
       
-      if (record && record.completed) {
-        // Day was tracked and completed - continue streak
+      if (hasCompletedRecord) {
         streak++;
       } else {
-        // Day should have been tracked but wasn't completed OR not tracked at all
-        // This breaks the streak - stop counting
+        // This day should have been tracked but wasn't completed
+        // This breaks the current streak
+        foundGap = true;
         break;
       }
     }
-    // If day is not in trackingDays, skip it (don't break streak)
+    // If this day is not a tracking day, skip it (don't break streak)
 
     // Move to previous day
     currentDate.setDate(currentDate.getDate() - 1);
     
-    // Don't go back more than 365 days to prevent infinite loops
+    // Safety check - don't go back more than 365 days
+    const today = new Date();
     if (today - currentDate > 365 * 24 * 60 * 60 * 1000) {
       break;
     }
