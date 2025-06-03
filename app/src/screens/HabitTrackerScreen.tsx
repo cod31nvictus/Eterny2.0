@@ -18,9 +18,11 @@ const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 
 const HabitTrackerScreen: React.FC = () => {
   const { 
+    habits,
     todayHabits, 
     loading, 
     error, 
+    fetchHabits,
     fetchTodayHabits, 
     createHabit, 
     toggleHabitTracking,
@@ -32,9 +34,12 @@ const HabitTrackerScreen: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDateHabits, setSelectedDateHabits] = useState<any[]>([]);
 
   useEffect(() => {
     fetchTodayHabits();
+    fetchHabits();
   }, []);
 
   useEffect(() => {
@@ -45,9 +50,40 @@ const HabitTrackerScreen: React.FC = () => {
     }
   }, [error]);
 
+  // Fetch habits for selected date when date changes
+  useEffect(() => {
+    fetchHabitsForDate(selectedDate);
+  }, [selectedDate, habits]);
+
+  const fetchHabitsForDate = (date: Date) => {
+    const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+    const dateString = date.toISOString().split('T')[0];
+    
+    // Filter habits that should be tracked on this day
+    const dayHabits = habits.filter(habit => 
+      habit.isActive && habit.trackingDays.includes(dayOfWeek)
+    );
+
+    // For today, use the todayHabits data which includes completion status
+    const isToday = date.toDateString() === new Date().toDateString();
+    if (isToday) {
+      setSelectedDateHabits(todayHabits);
+    } else {
+      // For other dates, we need to manually set completion status
+      // This is a simplified version - in a real app, you'd fetch the actual completion data
+      const habitsWithStatus = dayHabits.map(habit => ({
+        ...habit,
+        completedToday: false, // We don't have historical data, so default to false
+        trackingId: undefined
+      }));
+      setSelectedDateHabits(habitsWithStatus);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchTodayHabits();
+    await fetchHabits();
     setRefreshing(false);
   };
 
@@ -84,12 +120,24 @@ const HabitTrackerScreen: React.FC = () => {
     return date.toDateString() === today.toDateString();
   };
 
+  const isSelectedDate = (date: Date | null) => {
+    if (!date) return false;
+    return date.toDateString() === selectedDate.toDateString();
+  };
+
   const isFutureDate = (date: Date | null) => {
     if (!date) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    return date > today;
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate > today;
+  };
+
+  const handleDateSelect = (date: Date) => {
+    if (!isFutureDate(date)) {
+      setSelectedDate(date);
+    }
   };
 
   const toggleDay = (dayIndex: number) => {
@@ -120,12 +168,29 @@ const HabitTrackerScreen: React.FC = () => {
   };
 
   const handleToggleHabit = async (habitId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    await toggleHabitTracking(habitId, today);
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const success = await toggleHabitTracking(habitId, dateString);
+    
+    if (success) {
+      // Refresh the selected date habits
+      fetchHabitsForDate(selectedDate);
+    }
   };
 
   const formatMonth = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const formatSelectedDate = (date: Date) => {
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      return "Today's Habits";
+    }
+    return `Habits for ${date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'short', 
+      day: 'numeric' 
+    })}`;
   };
 
   const calendarDays = generateCalendarDays(currentDate);
@@ -154,23 +219,30 @@ const HabitTrackerScreen: React.FC = () => {
           {/* Calendar grid */}
           <View style={styles.calendarGrid}>
             {calendarDays.map((date, index) => (
-              <View key={index} style={styles.calendarDay}>
+              <TouchableOpacity 
+                key={index} 
+                style={styles.calendarDay}
+                onPress={() => date && handleDateSelect(date)}
+                disabled={!date || isFutureDate(date)}
+              >
                 {date && (
                   <View style={[
                     styles.dayCell,
                     isToday(date) && styles.todayCell,
+                    isSelectedDate(date) && styles.selectedDateCell,
                     isFutureDate(date) && styles.futureDayCell
                   ]}>
                     <Text style={[
                       styles.dayText,
                       isToday(date) && styles.todayText,
+                      isSelectedDate(date) && styles.selectedDateText,
                       isFutureDate(date) && styles.futureDayText
                     ]}>
                       {date.getDate()}
                     </Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -178,7 +250,7 @@ const HabitTrackerScreen: React.FC = () => {
         {/* Habits Section */}
         <View style={styles.habitsContainer}>
           <View style={styles.habitsHeader}>
-            <Text style={styles.habitsTitle}>Today's Habits</Text>
+            <Text style={styles.habitsTitle}>{formatSelectedDate(selectedDate)}</Text>
             <TouchableOpacity 
               style={styles.addButton}
               onPress={() => setShowAddModal(true)}
@@ -193,14 +265,14 @@ const HabitTrackerScreen: React.FC = () => {
             </View>
           )}
 
-          {!loading && todayHabits.length === 0 && (
+          {!loading && selectedDateHabits.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No habits for today</Text>
+              <Text style={styles.emptyStateText}>No habits for this day</Text>
               <Text style={styles.emptyStateSubtext}>Add a habit to get started!</Text>
             </View>
           )}
 
-          {!loading && todayHabits.map((habit) => (
+          {!loading && selectedDateHabits.map((habit) => (
             <View key={habit._id} style={styles.habitItem}>
               <View style={styles.habitInfo}>
                 <Text style={styles.habitName}>{habit.name}</Text>
@@ -349,6 +421,9 @@ const styles = StyleSheet.create({
   todayCell: {
     backgroundColor: '#000000',
   },
+  selectedDateCell: {
+    backgroundColor: '#000000',
+  },
   futureDayCell: {
     opacity: 0.3,
   },
@@ -357,6 +432,10 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   todayText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  selectedDateText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
   },

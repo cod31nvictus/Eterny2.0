@@ -71,7 +71,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setError(null);
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/api/habits`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits`, {
         method: 'GET',
         headers,
       });
@@ -96,7 +96,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setError(null);
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/api/habits/today`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits/today`, {
         method: 'GET',
         headers,
       });
@@ -121,7 +121,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setError(null);
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/api/habits`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ name, trackingDays }),
@@ -156,7 +156,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setError(null);
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/api/habits/${habitId}/track`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits/${habitId}/track`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ date }),
@@ -207,7 +207,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setError(null);
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/api/habits/${habitId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits/${habitId}`, {
         method: 'DELETE',
         headers,
       });
