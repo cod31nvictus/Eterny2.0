@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import { useHabitContext } from '../contexts/HabitContext';
 
 const DAYS_OF_WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -31,8 +33,8 @@ const HabitTrackerScreen: React.FC = () => {
   } = useHabitContext();
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingHabit, setEditingHabit] = useState<any>(null);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [selectedHabit, setSelectedHabit] = useState<any>(null);
   const [habitName, setHabitName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,11 +181,11 @@ const HabitTrackerScreen: React.FC = () => {
     }
   };
 
-  const handleEditHabit = (habit: any) => {
-    setEditingHabit(habit);
+  const handleInfoPress = (habit: any) => {
+    setSelectedHabit(habit);
     setHabitName(habit.name);
     setSelectedDays(habit.trackingDays);
-    setShowEditModal(true);
+    setShowInfoModal(true);
   };
 
   const handleUpdateHabit = async () => {
@@ -198,42 +200,39 @@ const HabitTrackerScreen: React.FC = () => {
     }
 
     // For now, we'll delete the old habit and create a new one
-    // In a real app, you'd have an update API endpoint
-    const deleteSuccess = await deleteHabit(editingHabit._id);
+    const deleteSuccess = await deleteHabit(selectedHabit._id);
     if (deleteSuccess) {
       const createSuccess = await createHabit(habitName.trim(), selectedDays);
       if (createSuccess) {
-        setShowEditModal(false);
-        setEditingHabit(null);
+        setShowInfoModal(false);
+        setSelectedHabit(null);
         setHabitName('');
         setSelectedDays([]);
       }
     }
   };
 
-  const handleDeleteHabit = (habitId: string, habitName: string) => {
+  const handleDeleteHabit = () => {
     Alert.alert(
       'Delete Habit',
-      `Are you sure you want to delete "${habitName}"?`,
+      `Are you sure you want to delete "${selectedHabit.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           style: 'destructive',
-          onPress: () => deleteHabit(habitId)
+          onPress: async () => {
+            const success = await deleteHabit(selectedHabit._id);
+            if (success) {
+              setShowInfoModal(false);
+              setSelectedHabit(null);
+              setHabitName('');
+              setSelectedDays([]);
+            }
+          }
         }
       ]
     );
-  };
-
-  const handleToggleHabit = async (habitId: string) => {
-    const dateString = selectedDate.toISOString().split('T')[0];
-    const success = await toggleHabitTracking(habitId, dateString);
-    
-    if (success) {
-      // Refresh the selected date habits
-      fetchHabitsForDate(selectedDate);
-    }
   };
 
   const formatMonth = (date: Date) => {
@@ -349,45 +348,19 @@ const HabitTrackerScreen: React.FC = () => {
           )}
 
           {!loading && selectedDateHabits.map((habit) => (
-            <View key={habit._id} style={styles.habitItem}>
-              <View style={styles.habitInfo}>
-                <View style={styles.habitNameRow}>
-                  <Text style={styles.habitName}>{habit.name}</Text>
-                  <View style={styles.habitActions}>
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => handleEditHabit(habit)}
-                    >
-                      <Text style={styles.editIcon}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteHabit(habit._id, habit.name)}
-                    >
-                      <Text style={styles.deleteIcon}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Text style={styles.habitStreak}>
-                  Current streak: {habit.currentStreak} days
-                </Text>
-              </View>
-              
-              <TouchableOpacity
-                style={[
-                  styles.habitToggle,
-                  habit.completedToday && styles.habitToggleCompleted
-                ]}
-                onPress={() => handleToggleHabit(habit._id)}
-              >
-                <Text style={[
-                  styles.habitToggleText,
-                  habit.completedToday && styles.habitToggleTextCompleted
-                ]}>
-                  {habit.completedToday ? '✓' : '○'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <SwipeableHabitItem
+              key={habit._id}
+              habit={habit}
+              onInfoPress={() => handleInfoPress(habit)}
+              onToggle={() => {
+                const dateString = selectedDate.toISOString().split('T')[0];
+                toggleHabitTracking(habit._id, dateString).then((success) => {
+                  if (success) {
+                    fetchHabitsForDate(selectedDate);
+                  }
+                });
+              }}
+            />
           ))}
         </View>
       </ScrollView>
@@ -455,16 +428,16 @@ const HabitTrackerScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Edit Habit Modal */}
+      {/* Habit Info Modal */}
       <Modal
-        visible={showEditModal}
+        visible={showInfoModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowEditModal(false)}
+        onRequestClose={() => setShowInfoModal(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+            <TouchableOpacity onPress={() => setShowInfoModal(false)}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Edit Habit</Text>
@@ -514,9 +487,109 @@ const HabitTrackerScreen: React.FC = () => {
                 </Text>
               )}
             </View>
+
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDeleteHabit}
+            >
+              <Text style={styles.deleteButtonText}>Delete Habit</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
+    </View>
+  );
+};
+
+// Swipeable Habit Item Component
+const SwipeableHabitItem: React.FC<{
+  habit: any;
+  onInfoPress: () => void;
+  onToggle: () => void;
+}> = ({ habit, onInfoPress, onToggle }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [localCompleted, setLocalCompleted] = useState(habit.completedToday);
+
+  // Update local state when habit prop changes
+  useEffect(() => {
+    setLocalCompleted(habit.completedToday);
+  }, [habit.completedToday]);
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = (event: any) => {
+    const { translationX, state } = event.nativeEvent;
+    
+    if (state === 5) { // ENDED
+      const threshold = 100;
+      
+      if (Math.abs(translationX) > threshold) {
+        // Instantly update UI
+        setLocalCompleted(!localCompleted);
+        
+        // Animate card
+        Animated.timing(translateX, {
+          toValue: translationX > 0 ? 300 : -300,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => {
+          // Then sync with backend
+          onToggle();
+          resetPosition();
+        });
+      } else {
+        resetPosition();
+      }
+    }
+  };
+
+  const resetPosition = () => {
+    Animated.timing(translateX, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <View style={styles.swipeContainer}>
+      {/* Swipeable card */}
+      <PanGestureHandler
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
+      >
+        <Animated.View 
+          style={[
+            styles.habitItem,
+            { transform: [{ translateX }] }
+          ]}
+        >
+          <View style={styles.habitInfo}>
+            <View style={styles.habitNameRow}>
+              <View style={styles.habitNameWithInfo}>
+                <TouchableOpacity 
+                  style={styles.infoButton}
+                  onPress={onInfoPress}
+                >
+                  <Text style={styles.infoIcon}>ⓘ</Text>
+                </TouchableOpacity>
+                <Text style={styles.habitName}>{habit.name}</Text>
+              </View>
+              {localCompleted && (
+                <View style={styles.completedIcon}>
+                  <Text style={styles.completedCheckmark}>✓</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.habitStreak}>
+              Current streak: {habit.currentStreak} days
+            </Text>
+          </View>
+        </Animated.View>
+      </PanGestureHandler>
     </View>
   );
 };
@@ -680,6 +753,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
+  habitNameWithInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   habitName: {
     fontSize: 16,
     fontWeight: '600',
@@ -690,49 +768,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333333',
   },
-  habitActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  infoButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginRight: 8,
   },
-  editIcon: {
-    fontSize: 16,
+  infoIcon: {
+    fontSize: 14,
     color: '#000000',
   },
-  deleteIcon: {
-    fontSize: 16,
-    color: '#000000',
-    fontWeight: 'bold',
-  },
-  habitToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#000000',
-    backgroundColor: '#FFFFFF',
+  completedIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  habitToggleCompleted: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  habitToggleText: {
-    fontSize: 18,
-    color: '#000000',
+  completedCheckmark: {
+    fontSize: 12,
     fontWeight: 'bold',
-  },
-  habitToggleTextCompleted: {
     color: '#FFFFFF',
   },
 
@@ -817,6 +876,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333333',
     textAlign: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  swipeContainer: {
+    flex: 1,
   },
 });
 

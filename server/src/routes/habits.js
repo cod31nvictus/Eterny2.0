@@ -17,9 +17,10 @@ const calculateStreak = async (habitId, userId) => {
 
   let streak = 0;
   let currentDate = new Date(today);
+  let foundIncompleteDay = false;
 
   // Go backwards from today
-  while (true) {
+  while (!foundIncompleteDay) {
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
 
@@ -30,13 +31,9 @@ const calculateStreak = async (habitId, userId) => {
       if (record && record.completed) {
         streak++;
       } else {
-        // If we're looking at today or future, don't break streak yet
-        if (currentDate.toDateString() === today.toDateString()) {
-          // Today - don't break streak if not completed yet
-        } else {
-          // Past day - break streak
-          break;
-        }
+        // Day was supposed to be tracked but wasn't completed
+        foundIncompleteDay = true;
+        break;
       }
     }
 
