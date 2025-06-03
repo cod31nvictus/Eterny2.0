@@ -84,7 +84,7 @@ const CustomHeader = ({ route, navigation }: any) => {
       case 'HabitTracker':
         return 'Habit Tracker';
       case 'MenuBuilder':
-        return 'Menu Builder';
+        return 'Meal Builder';
       case 'ToDo':
         return 'To Do';
       default:

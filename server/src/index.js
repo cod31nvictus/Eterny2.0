@@ -77,6 +77,7 @@ app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/summary', require('./routes/summary'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/todo', require('./routes/todo'));
+app.use('/api/habits', require('./routes/habits'));
 app.use('/sync', apiLimiter, require('./routes/sync'));
 
 // Backward compatibility routes

@@ -10,7 +10,7 @@
 
 * **End**: Initialized Node.js project with Express and project scaffolding
 
-* **Test**: `GET /ping` returns “pong”
+* **Test**: `GET /ping` returns "pong"
 
 ---
 
@@ -286,7 +286,7 @@
 
 ---
 
-### **28\. Build “Now” View**
+### **28\. Build "Now" View**
 
 * **Start**: Planned calendar API working
 
@@ -296,7 +296,7 @@
 
 ---
 
-### **29\. Build “Today” Calendar View**
+### **29\. Build "Today" Calendar View**
 
 * **Start**: Fetch blocks for today
 
@@ -306,7 +306,7 @@
 
 ---
 
-### **30\. Build “Wellness Report” View**
+### **30\. Build "Wellness Report" View**
 
 * **Start**: Summary API connected
 
@@ -335,4 +335,111 @@
 * **End**: `.env` with secrets, `start`/`build` scripts
 
 * **Test**: Deploy to Vercel (web) and Expo (mobile)
+
+---
+
+## **✅ COMPLETED: To-Do System Implementation**
+
+### **33. ✅ Create ToDoItem Mongoose Model**
+
+* **Start**: Add new model in `models/ToDoItem.js`
+
+* **End**: Define fields: `userId`, `text`, `date`, `time`, `completed`, `completedAt`, `order`
+
+* **Test**: ✅ Manually create item in DB, retrieve via Mongoose
+
+* **Status**: **COMPLETED** - Model includes validation, indexing, and pre-save hooks
+
+---
+
+### **34. ✅ Add API: Create, Get, Complete To Do Items**
+
+* **Start**: Create new routes `/api/todo`
+
+* **End**: Implement `POST /todo`, `GET /todo?date=...`, `PATCH /todo/:id/complete`, `PUT /todo/:id`, `DELETE /todo/:id`
+
+* **Test**: ✅ CRUD operations tested with authentication
+
+* **Status**: **COMPLETED** - Full REST API with authentication middleware
+
+---
+
+### **35. ✅ Add ToDo Context in React Native App**
+
+* **Start**: Create `ToDoContext` for global access
+
+* **End**: Provide state + API fetch methods with error handling
+
+* **Test**: ✅ Context state logged from ToDoScreen
+
+* **Status**: **COMPLETED** - Context provides todos, loading, error states and CRUD methods
+
+---
+
+### **36. ✅ Build ToDoScreen.tsx**
+
+* **Start**: Empty placeholder screen
+
+* **End**: Render list of to-dos (grouped by date), allow adding and completing items
+
+* **Test**: ✅ Create and complete tasks with date navigation
+
+* **Status**: **COMPLETED** - Full-featured screen with date picker, add/complete functionality
+
+---
+
+### **37. ✅ Add ToDoInputRow.tsx Component**
+
+* **Start**: Create input row for inline entry
+
+* **End**: Add "+" interaction to insert new line of text, allow time entry (optional)
+
+* **Test**: ✅ Add new item to list with time validation
+
+* **Status**: **COMPLETED** - Inline editing with time picker and validation
+
+---
+
+### **38. ✅ Add ToDoItem.tsx Component**
+
+* **Start**: Create visual for list item
+
+* **End**: Show checkbox, strike-through on completion, optional time beside item, black X delete button
+
+* **Test**: ✅ Interact with checkbox and delete functionality
+
+* **Status**: **COMPLETED** - Clean UI with animations and delete functionality
+
+---
+
+### **39. ✅ Integrate To Do in NowScreen.tsx**
+
+* **Start**: Fetch and display to-dos for today below scheduled blocks
+
+* **End**: Add "Today's Tasks" section between "Now" and "Up Next" with completion logic
+
+* **Test**: ✅ Confirm completion removes item with visual cue
+
+* **Status**: **COMPLETED** - Seamless integration with existing NowScreen layout
+
+---
+
+### **40. ✅ Deploy To-Do System to Production**
+
+* **Start**: Local development complete
+
+* **End**: Backend deployed to AWS EC2, frontend built and tested
+
+* **Test**: ✅ Production API endpoints working with authentication
+
+* **Status**: **COMPLETED** - Live on `https://eterny-app.ddns.net/api/todo`
+
+---
+
+## **📱 Build Status**
+
+* **Build 26**: Initial To-Do system implementation
+* **Build 27**: ✅ **CURRENT** - Updated UI with black X delete buttons and NowScreen integration
+* **APK Size**: 41MB
+* **Status**: Ready for testing
 

@@ -5,7 +5,7 @@ const MenuBuilderScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Menu Builder</Text>
+        <Text style={styles.title}>Meal Builder</Text>
         <Text style={styles.subtitle}>Coming Soon</Text>
         <Text style={styles.description}>
           Plan your meals and create healthy eating schedules.

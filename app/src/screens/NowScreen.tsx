@@ -511,7 +511,7 @@ const NowScreen = ({ navigation }: any) => {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.quickAccessText}>Menu Builder</Text>
+            <Text style={styles.quickAccessText}>Meal Builder</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
