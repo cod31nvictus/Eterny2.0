@@ -193,8 +193,9 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
         const result = await response.json();
         
         // Update today habits immediately if tracking for today
-        const today = new Date().toISOString().split('T')[0];
-        if (date === today) {
+        const today = new Date();
+        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (date === todayString) {
           setTodayHabits(prev => 
             prev.map(habit => 
               habit._id === habitId 

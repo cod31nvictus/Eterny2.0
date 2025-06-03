@@ -62,7 +62,11 @@ const HabitTrackerScreen: React.FC = () => {
   }, [selectedDate, habits, todayHabits]);
 
   const fetchHabitsForDate = async (date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
+    // Fix timezone issue: use local date instead of UTC
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
     
     // For today, use the todayHabits data which includes completion status
     const isToday = date.toDateString() === new Date().toDateString();
@@ -359,7 +363,11 @@ const HabitTrackerScreen: React.FC = () => {
               habit={habit}
               onInfoPress={() => handleInfoPress(habit)}
               onToggle={async () => {
-                const dateString = selectedDate.toISOString().split('T')[0];
+                // Fix timezone issue: use local date instead of UTC
+                const year = selectedDate.getFullYear();
+                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${day}`;
                 const success = await toggleHabitTracking(habit._id, dateString);
                 if (success) {
                   // Context already updates the state immediately
