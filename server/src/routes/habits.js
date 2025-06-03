@@ -103,11 +103,22 @@ router.get('/today', authenticateToken, async (req, res) => {
     const dayOfWeek = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
     const dateStr = today.toISOString().split('T')[0];
 
+    console.log('🔧 Today endpoint called');
+    console.log('🔧 Raw today.getDay():', today.getDay(), '(0=Sunday, 1=Monday, etc.)');
+    console.log('🔧 Converted dayOfWeek:', dayOfWeek, '(0=Monday, 1=Tuesday, etc.)');
+    console.log('🔧 Date string:', dateStr);
+    console.log('🔧 Looking for habits with trackingDays containing:', dayOfWeek);
+
     const habits = await Habit.find({ 
       userId: req.user.id, 
       isActive: true,
       trackingDays: dayOfWeek
     }).sort({ createdAt: -1 });
+
+    console.log('🔧 Found habits:', habits.length);
+    habits.forEach(habit => {
+      console.log(`🔧 Habit "${habit.name}" trackingDays:`, habit.trackingDays);
+    });
 
     // Get today's tracking records
     const trackingRecords = await HabitTracking.find({
@@ -150,11 +161,21 @@ router.get('/date/:date', authenticateToken, async (req, res) => {
     const targetDate = new Date(date + 'T00:00:00.000Z');
     const dayOfWeek = (targetDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
 
+    console.log('🔧 Date endpoint called for:', date);
+    console.log('🔧 Raw targetDate.getDay():', targetDate.getDay(), '(0=Sunday, 1=Monday, etc.)');
+    console.log('🔧 Converted dayOfWeek:', dayOfWeek, '(0=Monday, 1=Tuesday, etc.)');
+    console.log('🔧 Looking for habits with trackingDays containing:', dayOfWeek);
+
     const habits = await Habit.find({ 
       userId: req.user.id, 
       isActive: true,
       trackingDays: dayOfWeek
     }).sort({ createdAt: -1 });
+
+    console.log('🔧 Found habits for date:', habits.length);
+    habits.forEach(habit => {
+      console.log(`🔧 Habit "${habit.name}" trackingDays:`, habit.trackingDays);
+    });
 
     // Get tracking records for the specific date
     const trackingRecords = await HabitTracking.find({
@@ -196,6 +217,10 @@ router.post('/', authenticateToken, async (req, res) => {
     if (trackingDays.length === 0) {
       return res.status(400).json({ error: 'At least one tracking day must be selected' });
     }
+
+    console.log('🔧 Creating habit:', name);
+    console.log('🔧 Tracking days from frontend:', trackingDays);
+    console.log('🔧 Day mapping: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday');
 
     const habit = new Habit({
       userId: req.user.id,
