@@ -26,10 +26,13 @@ const HabitTrackerScreen: React.FC = () => {
     fetchTodayHabits, 
     createHabit, 
     toggleHabitTracking,
+    deleteHabit,
     clearError 
   } = useHabitContext();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<any>(null);
   const [habitName, setHabitName] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,7 +56,7 @@ const HabitTrackerScreen: React.FC = () => {
   // Fetch habits for selected date when date changes
   useEffect(() => {
     fetchHabitsForDate(selectedDate);
-  }, [selectedDate, habits]);
+  }, [selectedDate, habits, todayHabits]);
 
   const fetchHabitsForDate = (date: Date) => {
     const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
@@ -70,7 +73,6 @@ const HabitTrackerScreen: React.FC = () => {
       setSelectedDateHabits(todayHabits);
     } else {
       // For other dates, we need to manually set completion status
-      // This is a simplified version - in a real app, you'd fetch the actual completion data
       const habitsWithStatus = dayHabits.map(habit => ({
         ...habit,
         completedToday: false, // We don't have historical data, so default to false
@@ -140,6 +142,16 @@ const HabitTrackerScreen: React.FC = () => {
     }
   };
 
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCurrentDate(newDate);
+  };
+
   const toggleDay = (dayIndex: number) => {
     setSelectedDays(prev => 
       prev.includes(dayIndex)
@@ -165,6 +177,53 @@ const HabitTrackerScreen: React.FC = () => {
       setHabitName('');
       setSelectedDays([]);
     }
+  };
+
+  const handleEditHabit = (habit: any) => {
+    setEditingHabit(habit);
+    setHabitName(habit.name);
+    setSelectedDays(habit.trackingDays);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateHabit = async () => {
+    if (!habitName.trim()) {
+      Alert.alert('Error', 'Please enter a habit name');
+      return;
+    }
+
+    if (selectedDays.length === 0) {
+      Alert.alert('Error', 'Please select at least one day');
+      return;
+    }
+
+    // For now, we'll delete the old habit and create a new one
+    // In a real app, you'd have an update API endpoint
+    const deleteSuccess = await deleteHabit(editingHabit._id);
+    if (deleteSuccess) {
+      const createSuccess = await createHabit(habitName.trim(), selectedDays);
+      if (createSuccess) {
+        setShowEditModal(false);
+        setEditingHabit(null);
+        setHabitName('');
+        setSelectedDays([]);
+      }
+    }
+  };
+
+  const handleDeleteHabit = (habitId: string, habitName: string) => {
+    Alert.alert(
+      'Delete Habit',
+      `Are you sure you want to delete "${habitName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteHabit(habitId)
+        }
+      ]
+    );
   };
 
   const handleToggleHabit = async (habitId: string) => {
@@ -205,7 +264,24 @@ const HabitTrackerScreen: React.FC = () => {
       >
         {/* Calendar Section */}
         <View style={styles.calendarContainer}>
-          <Text style={styles.monthTitle}>{formatMonth(currentDate)}</Text>
+          {/* Month Navigation Header */}
+          <View style={styles.monthHeader}>
+            <TouchableOpacity 
+              style={styles.monthNavButton}
+              onPress={() => navigateMonth('prev')}
+            >
+              <Text style={styles.monthNavText}>{'<'}</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.monthTitle}>{formatMonth(currentDate)}</Text>
+            
+            <TouchableOpacity 
+              style={styles.monthNavButton}
+              onPress={() => navigateMonth('next')}
+            >
+              <Text style={styles.monthNavText}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Days of week header */}
           <View style={styles.weekHeader}>
@@ -275,7 +351,23 @@ const HabitTrackerScreen: React.FC = () => {
           {!loading && selectedDateHabits.map((habit) => (
             <View key={habit._id} style={styles.habitItem}>
               <View style={styles.habitInfo}>
-                <Text style={styles.habitName}>{habit.name}</Text>
+                <View style={styles.habitNameRow}>
+                  <Text style={styles.habitName}>{habit.name}</Text>
+                  <View style={styles.habitActions}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleEditHabit(habit)}
+                    >
+                      <Text style={styles.editIcon}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleDeleteHabit(habit._id, habit.name)}
+                    >
+                      <Text style={styles.deleteIcon}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
                 <Text style={styles.habitStreak}>
                   Current streak: {habit.currentStreak} days
                 </Text>
@@ -362,6 +454,69 @@ const HabitTrackerScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Habit Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Edit Habit</Text>
+            <TouchableOpacity onPress={handleUpdateHabit}>
+              <Text style={styles.modalSaveText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalContent}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Habit Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={habitName}
+                onChangeText={setHabitName}
+                placeholder="e.g., Drink 8 glasses of water"
+                placeholderTextColor="#999999"
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.daysContainer}>
+              <Text style={styles.inputLabel}>Track on these days</Text>
+              <View style={styles.daysGrid}>
+                {DAYS_OF_WEEK.map((day, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dayButton,
+                      selectedDays.includes(index) && styles.dayButtonSelected
+                    ]}
+                    onPress={() => toggleDay(index)}
+                  >
+                    <Text style={[
+                      styles.dayButtonText,
+                      selectedDays.includes(index) && styles.dayButtonTextSelected
+                    ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              {selectedDays.length > 0 && (
+                <Text style={styles.selectedDaysText}>
+                  Selected: {selectedDays.map(i => FULL_DAYS[i]).join(', ')}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -379,6 +534,27 @@ const styles = StyleSheet.create({
   calendarContainer: {
     padding: 16,
     backgroundColor: '#FFFFFF',
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  monthNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthNavText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
   },
   monthTitle: {
     fontSize: 24,
@@ -498,15 +674,44 @@ const styles = StyleSheet.create({
   habitInfo: {
     flex: 1,
   },
+  habitNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   habitName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 4,
+    flex: 1,
   },
   habitStreak: {
     fontSize: 14,
     color: '#333333',
+  },
+  habitActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  editIcon: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  deleteIcon: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: 'bold',
   },
   habitToggle: {
     width: 40,
