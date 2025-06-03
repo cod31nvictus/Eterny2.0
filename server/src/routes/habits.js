@@ -96,17 +96,31 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/habits/today - Get habits for today
+// GET /api/habits/today - Get habits for today (user's local timezone)
 router.get('/today', authenticateToken, async (req, res) => {
   try {
-    const today = new Date();
-    const dayOfWeek = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
-    const dateStr = today.toISOString().split('T')[0];
+    // Allow frontend to specify the "today" date in user's local timezone
+    const { date: localToday } = req.query;
+    
+    let dateStr, dayOfWeek;
+    
+    if (localToday) {
+      // Use the date provided by frontend (user's local timezone)
+      dateStr = localToday;
+      const localDate = new Date(localToday + 'T00:00:00.000Z');
+      dayOfWeek = (localDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+      console.log('🔧 Using frontend local date:', localToday);
+    } else {
+      // Fallback to server time (may be incorrect due to timezone differences)
+      const today = new Date();
+      dayOfWeek = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+      dateStr = today.toISOString().split('T')[0];
+      console.log('🔧 Using server date (fallback):', dateStr);
+    }
 
     console.log('🔧 Today endpoint called');
-    console.log('🔧 Raw today.getDay():', today.getDay(), '(0=Sunday, 1=Monday, etc.)');
-    console.log('🔧 Converted dayOfWeek:', dayOfWeek, '(0=Monday, 1=Tuesday, etc.)');
     console.log('🔧 Date string:', dateStr);
+    console.log('🔧 Calculated dayOfWeek:', dayOfWeek, '(0=Monday, 1=Tuesday, etc.)');
     console.log('🔧 Looking for habits with trackingDays containing:', dayOfWeek);
 
     const habits = await Habit.find({ 

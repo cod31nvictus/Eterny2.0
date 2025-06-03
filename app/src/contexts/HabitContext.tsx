@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config/environment';
 
+// Helper function to get local date string in YYYY-MM-DD format
+const getLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Types
 export interface Habit {
   _id: string;
@@ -96,8 +104,12 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      // Send user's local date to ensure timezone consistency
+      const today = new Date();
+      const localDateStr = getLocalDateString(today);
+
       const headers = await getAuthHeaders();
-      const response = await fetch(`${config.API_BASE_URL}/habits/today`, {
+      const response = await fetch(`${config.API_BASE_URL}/habits/today?date=${localDateStr}`, {
         method: 'GET',
         headers,
       });
@@ -194,7 +206,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
         
         // Update today habits immediately if tracking for today
         const today = new Date();
-        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todayString = getLocalDateString(today);
         if (date === todayString) {
           setTodayHabits(prev => 
             prev.map(habit => 

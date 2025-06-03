@@ -18,6 +18,14 @@ import { useHabitContext } from '../contexts/HabitContext';
 const DAYS_OF_WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+// Helper function to get local date string in YYYY-MM-DD format
+const getLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const HabitTrackerScreen: React.FC = () => {
   const { 
     habits,
@@ -62,11 +70,7 @@ const HabitTrackerScreen: React.FC = () => {
   }, [selectedDate, habits, todayHabits]);
 
   const fetchHabitsForDate = async (date: Date) => {
-    // Fix timezone issue: use local date instead of UTC
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    const dateString = getLocalDateString(date);
     
     // For today, use the todayHabits data which includes completion status
     const isToday = date.toDateString() === new Date().toDateString();
@@ -363,11 +367,7 @@ const HabitTrackerScreen: React.FC = () => {
               habit={habit}
               onInfoPress={() => handleInfoPress(habit)}
               onToggle={async () => {
-                // Fix timezone issue: use local date instead of UTC
-                const year = selectedDate.getFullYear();
-                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                const day = String(selectedDate.getDate()).padStart(2, '0');
-                const dateString = `${year}-${month}-${day}`;
+                const dateString = getLocalDateString(selectedDate);
                 const success = await toggleHabitTracking(habit._id, dateString);
                 if (success) {
                   // Context already updates the state immediately
