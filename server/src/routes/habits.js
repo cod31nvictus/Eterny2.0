@@ -117,6 +117,53 @@ router.get('/today', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/habits/date/:date - Get habits for specific date
+router.get('/date/:date', authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.params;
+    
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
+
+    const targetDate = new Date(date + 'T00:00:00.000Z');
+    const dayOfWeek = (targetDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+
+    const habits = await Habit.find({ 
+      userId: req.user.id, 
+      isActive: true,
+      trackingDays: dayOfWeek
+    }).sort({ createdAt: -1 });
+
+    // Get tracking records for the specific date
+    const trackingRecords = await HabitTracking.find({
+      userId: req.user.id,
+      date: date
+    });
+
+    // Calculate streaks and add completion status
+    const habitsWithStatus = await Promise.all(
+      habits.map(async (habit) => {
+        const streak = await calculateStreak(habit._id, req.user.id);
+        const tracking = trackingRecords.find(r => r.habitId.toString() === habit._id.toString());
+        
+        return {
+          ...habit.toObject(),
+          currentStreak: streak,
+          completedToday: tracking ? tracking.completed : false,
+          trackingId: tracking ? tracking._id : null
+        };
+      })
+    );
+
+    res.json(habitsWithStatus);
+  } catch (error) {
+    console.error('Error fetching habits for date:', error);
+    res.status(500).json({ error: 'Failed to fetch habits for date' });
+  }
+});
+
 // POST /api/habits - Create new habit
 router.post('/', authenticateToken, async (req, res) => {
   try {

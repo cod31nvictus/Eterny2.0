@@ -24,6 +24,7 @@ interface HabitContextType {
   // Actions
   fetchHabits: () => Promise<void>;
   fetchTodayHabits: () => Promise<void>;
+  fetchHabitsForDate: (date: string) => Promise<Habit[]>;
   createHabit: (name: string, trackingDays: number[]) => Promise<Habit | null>;
   toggleHabitTracking: (habitId: string, date: string) => Promise<boolean>;
   deleteHabit: (habitId: string) => Promise<boolean>;
@@ -110,6 +111,32 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       }
     } catch (error) {
       handleApiError(error, 'Failed to fetch today habits');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHabitsForDate = async (date: string): Promise<Habit[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${config.API_BASE_URL}/habits/date/${date}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch habits for date');
+      }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch habits for date');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -239,6 +266,7 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
     error,
     fetchHabits,
     fetchTodayHabits,
+    fetchHabitsForDate,
     createHabit,
     toggleHabitTracking,
     deleteHabit,

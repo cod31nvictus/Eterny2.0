@@ -25,7 +25,8 @@ const HabitTrackerScreen: React.FC = () => {
     loading, 
     error, 
     fetchHabits,
-    fetchTodayHabits, 
+    fetchTodayHabits,
+    fetchHabitsForDate: fetchHabitsForDateFromAPI,
     createHabit, 
     toggleHabitTracking,
     deleteHabit,
@@ -60,27 +61,17 @@ const HabitTrackerScreen: React.FC = () => {
     fetchHabitsForDate(selectedDate);
   }, [selectedDate, habits, todayHabits]);
 
-  const fetchHabitsForDate = (date: Date) => {
-    const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+  const fetchHabitsForDate = async (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
     
-    // Filter habits that should be tracked on this day
-    const dayHabits = habits.filter(habit => 
-      habit.isActive && habit.trackingDays.includes(dayOfWeek)
-    );
-
     // For today, use the todayHabits data which includes completion status
     const isToday = date.toDateString() === new Date().toDateString();
     if (isToday) {
       setSelectedDateHabits(todayHabits);
     } else {
-      // For other dates, we need to manually set completion status
-      const habitsWithStatus = dayHabits.map(habit => ({
-        ...habit,
-        completedToday: false, // We don't have historical data, so default to false
-        trackingId: undefined
-      }));
-      setSelectedDateHabits(habitsWithStatus);
+      // For other dates, fetch from API with actual completion status
+      const habitsForDate = await fetchHabitsForDateFromAPI(dateString);
+      setSelectedDateHabits(habitsForDate);
     }
   };
 
