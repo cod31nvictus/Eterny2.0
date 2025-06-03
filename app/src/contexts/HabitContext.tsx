@@ -192,31 +192,9 @@ export const HabitProvider: React.FC<HabitProviderProps> = ({ children }) => {
       if (response.ok) {
         const result = await response.json();
         
-        // ONLY update today habits if we're actually tracking for today
-        const today = new Date().toISOString().split('T')[0];
-        if (date === today) {
-          setTodayHabits(prev => 
-            prev.map(habit => 
-              habit._id === habitId 
-                ? { 
-                    ...habit, 
-                    completedToday: result.completed, 
-                    currentStreak: result.currentStreak 
-                  }
-                : habit
-            )
-          );
-        }
-
-        // Always update the global habits streak since it affects all dates
-        setHabits(prev => 
-          prev.map(habit => 
-            habit._id === habitId 
-              ? { ...habit, currentStreak: result.currentStreak }
-              : habit
-          )
-        );
-
+        // Don't update any state here - let the screen handle the refresh
+        // This prevents conflicts between context state updates and screen refreshes
+        
         return true;
       } else {
         const errorData = await response.json();

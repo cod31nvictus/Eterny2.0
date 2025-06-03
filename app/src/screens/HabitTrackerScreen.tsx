@@ -357,16 +357,20 @@ const HabitTrackerScreen: React.FC = () => {
                 const dateString = selectedDate.toISOString().split('T')[0];
                 const success = await toggleHabitTracking(habit._id, dateString);
                 if (success) {
-                  // Refresh the habits for the selected date to get updated completion status
-                  await fetchHabitsForDate(selectedDate);
-                  
-                  // If we tracked for today, also refresh today's habits
+                  // Check if we're tracking for today
                   const today = new Date().toISOString().split('T')[0];
-                  if (dateString === today) {
+                  const isTrackingToday = dateString === today;
+                  
+                  if (isTrackingToday) {
+                    // For today, refresh today's habits first, then fetch habits for date
                     await fetchTodayHabits();
+                    await fetchHabitsForDate(selectedDate);
+                  } else {
+                    // For other dates, just refresh that date's habits
+                    await fetchHabitsForDate(selectedDate);
                   }
                   
-                  // Always refresh the global habits list to update streaks
+                  // Always refresh global habits to update streaks
                   await fetchHabits();
                 }
               }}

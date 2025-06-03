@@ -9,14 +9,11 @@ const calculateStreak = async (habitId, userId) => {
   const habit = await Habit.findById(habitId);
   if (!habit) return 0;
 
-  // Get all tracking records for this habit, sorted by date descending
+  // Get ALL tracking records for this habit, sorted by date descending
   const trackingRecords = await HabitTracking.find({
     habitId,
-    userId,
-    completed: true  // Only get completed records
+    userId
   }).sort({ date: -1 });
-
-  if (trackingRecords.length === 0) return 0;
 
   let streak = 0;
   let currentDate = new Date(); // Start from today
@@ -29,13 +26,14 @@ const calculateStreak = async (habitId, userId) => {
 
     // Check if this day should be tracked for this habit
     if (habit.trackingDays.includes(dayOfWeek)) {
-      // Find if there's a completed record for this date
-      const hasCompletedRecord = trackingRecords.some(r => r.date === dateStr);
+      // Find the tracking record for this date
+      const record = trackingRecords.find(r => r.date === dateStr);
       
-      if (hasCompletedRecord) {
+      if (record && record.completed) {
+        // Day was tracked and completed - continue streak
         streak++;
       } else {
-        // This day should have been tracked but wasn't completed
+        // Day should have been tracked but wasn't completed OR not tracked at all
         // This breaks the current streak
         foundGap = true;
         break;
