@@ -329,7 +329,12 @@ const HabitTrackerScreen: React.FC = () => {
             <Text style={styles.habitsTitle}>{formatSelectedDate(selectedDate)}</Text>
             <TouchableOpacity 
               style={styles.addButton}
-              onPress={() => setShowAddModal(true)}
+              onPress={() => {
+                // Clear form data when opening Add Habit modal
+                setHabitName('');
+                setSelectedDays([]);
+                setShowAddModal(true);
+              }}
             >
               <Text style={styles.addButtonText}>+ Add Habit</Text>
             </TouchableOpacity>
@@ -357,21 +362,9 @@ const HabitTrackerScreen: React.FC = () => {
                 const dateString = selectedDate.toISOString().split('T')[0];
                 const success = await toggleHabitTracking(habit._id, dateString);
                 if (success) {
-                  // Check if we're tracking for today
-                  const today = new Date().toISOString().split('T')[0];
-                  const isTrackingToday = dateString === today;
-                  
-                  if (isTrackingToday) {
-                    // For today, refresh today's habits first, then fetch habits for date
-                    await fetchTodayHabits();
-                    await fetchHabitsForDate(selectedDate);
-                  } else {
-                    // For other dates, just refresh that date's habits
-                    await fetchHabitsForDate(selectedDate);
-                  }
-                  
-                  // Always refresh global habits to update streaks
-                  await fetchHabits();
+                  // Context already updates the state immediately
+                  // Just refresh the selected date habits to ensure consistency
+                  await fetchHabitsForDate(selectedDate);
                 }
               }}
             />

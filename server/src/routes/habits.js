@@ -7,7 +7,10 @@ const { authenticateToken } = require('../middleware/auth');
 // Helper function to calculate streak
 const calculateStreak = async (habitId, userId) => {
   const habit = await Habit.findById(habitId);
-  if (!habit) return 0;
+  if (!habit) {
+    console.log('Streak calc: No habit found for', habitId);
+    return 0;
+  }
 
   // Get ALL tracking records for this habit, sorted by date descending
   const trackingRecords = await HabitTracking.find({
@@ -15,34 +18,46 @@ const calculateStreak = async (habitId, userId) => {
     userId
   }).sort({ date: -1 });
 
+  console.log('Streak calc for habit', habit.name, '- tracking records:', trackingRecords.length);
+  console.log('Tracking days:', habit.trackingDays);
+
   let streak = 0;
   let currentDate = new Date(); // Start from today
   let foundGap = false;
+  let daysChecked = 0;
 
   // Go backwards from today to find the current streak
-  while (!foundGap) {
+  while (!foundGap && daysChecked < 30) { // Limit to 30 days for debugging
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+
+    console.log(`Checking date ${dateStr} (dayOfWeek: ${dayOfWeek})`);
 
     // Check if this day should be tracked for this habit
     if (habit.trackingDays.includes(dayOfWeek)) {
       // Find the tracking record for this date
       const record = trackingRecords.find(r => r.date === dateStr);
+      console.log(`  Should be tracked. Record:`, record ? `completed=${record.completed}` : 'not found');
       
       if (record && record.completed) {
         // Day was tracked and completed - continue streak
         streak++;
+        console.log(`  ✓ Completed! Streak now: ${streak}`);
       } else {
         // Day should have been tracked but wasn't completed OR not tracked at all
         // This breaks the current streak
+        console.log(`  ✗ Not completed or not tracked. Breaking streak at ${streak}`);
         foundGap = true;
         break;
       }
+    } else {
+      console.log(`  Skipping (not a tracking day)`);
     }
     // If this day is not a tracking day, skip it (don't break streak)
 
     // Move to previous day
     currentDate.setDate(currentDate.getDate() - 1);
+    daysChecked++;
     
     // Safety check - don't go back more than 365 days
     const today = new Date();
@@ -51,6 +66,7 @@ const calculateStreak = async (habitId, userId) => {
     }
   }
 
+  console.log(`Final streak for ${habit.name}: ${streak}`);
   return streak;
 };
 
