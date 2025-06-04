@@ -10,12 +10,6 @@ const getLocalDateString = (date: Date): string => {
   const day = String(date.getDate()).padStart(2, '0');
   const result = `${year}-${month}-${day}`;
   
-  console.log('🔄 HabitContext getLocalDateString:');
-  console.log('  - Input date:', date);
-  console.log('  - toString():', date.toString());
-  console.log('  - Local components: year=' + year + ', month=' + (date.getMonth() + 1) + ', day=' + date.getDate());
-  console.log('  - Result string:', result);
-  
   return result;
 };
 

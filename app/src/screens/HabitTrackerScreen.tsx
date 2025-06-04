@@ -20,18 +20,11 @@ const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 
 // Helper function to get local date string in YYYY-MM-DD format
 const getLocalDateString = (date: Date): string => {
-  // Use local date methods to avoid timezone issues
   // CRITICAL: Do NOT use toISOString() as it converts to UTC
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const result = `${year}-${month}-${day}`;
-  
-  console.log('🕒 getLocalDateString Debug:');
-  console.log('  - Input date:', date);
-  console.log('  - Input date toString():', date.toString());
-  console.log('  - Local components: year=' + year + ', month=' + (date.getMonth() + 1) + ', day=' + date.getDate());
-  console.log('  - Result string:', result);
   
   return result;
 };
@@ -82,18 +75,11 @@ const HabitTrackerScreen: React.FC = () => {
   const fetchHabitsForDate = async (date: Date) => {
     const dateString = getLocalDateString(date);
     
-    console.log('🔍 fetchHabitsForDate Debug:');
-    console.log('  - Input date object:', date);
-    console.log('  - Generated dateString:', dateString);
-    console.log('  - Date day of week:', date.getDay(), '(0=Sunday, 1=Monday, etc.)');
-    
     // For today, use the todayHabits data which includes completion status
     const isToday = date.toDateString() === new Date().toDateString();
     if (isToday) {
-      console.log('  - Using todayHabits (this is today)');
       setSelectedDateHabits(todayHabits);
     } else {
-      console.log('  - Fetching from API for date:', dateString);
       // For other dates, fetch from API with actual completion status
       const habitsForDate = await fetchHabitsForDateFromAPI(dateString);
       setSelectedDateHabits(habitsForDate);
@@ -111,23 +97,13 @@ const HabitTrackerScreen: React.FC = () => {
     const year = date.getFullYear();
     const month = date.getMonth();
     
-    console.log('📅 generateCalendarDays Debug:');
-    console.log('  - Input date:', date);
-    console.log('  - Year:', year, 'Month:', month, '(0=January)');
-    
     // Create first day of month - use explicit local date creation
     const firstDay = new Date(year, month, 1);
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
-    console.log('  - First day of month:', firstDay, 'toString():', firstDay.toString());
-    console.log('  - Last day of month:', lastDay, 'toString():', lastDay.toString());
-    console.log('  - Days in month:', lastDay.getDate());
-    
     // Get the day of the week for the first day (0 = Sunday, convert to Monday = 0)
     const startDayOfWeek = (firstDay.getDay() + 6) % 7;
-    
-    console.log('  - Start day of week (Monday=0):', startDayOfWeek);
     
     const days = [];
     
@@ -141,14 +117,7 @@ const HabitTrackerScreen: React.FC = () => {
       // Create date in local timezone, avoiding any UTC conversion
       const dayDate = new Date(year, month, day);
       days.push(dayDate);
-      
-      // Debug first few dates
-      if (day <= 3) {
-        console.log(`  - Day ${day}: ${dayDate.toString()}, getDate()=${dayDate.getDate()}`);
-      }
     }
-    
-    console.log('  - Generated', days.length, 'calendar cells');
     
     return days;
   };
@@ -175,12 +144,6 @@ const HabitTrackerScreen: React.FC = () => {
 
   const handleDateSelect = (date: Date) => {
     if (!isFutureDate(date)) {
-      console.log('📅 Calendar Debug - Date selected:');
-      console.log('  - Raw date object:', date);
-      console.log('  - toString():', date.toString());
-      console.log('  - toDateString():', date.toDateString());
-      console.log('  - getDay() (0=Sunday):', date.getDay());
-      console.log('  - Local date string (YYYY-MM-DD):', getLocalDateString(date));
       setSelectedDate(date);
     }
   };

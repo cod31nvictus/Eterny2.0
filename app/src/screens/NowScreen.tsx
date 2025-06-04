@@ -11,8 +11,10 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import { useAuth } from '../contexts/AuthContext';
 import { useToDoContext } from '../contexts/ToDoContext';
+import { useHabitContext } from '../contexts/HabitContext';
 import ToDoItem from '../components/ToDoItem';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config/environment';
@@ -60,6 +62,12 @@ const NowScreen = ({ navigation }: any) => {
   console.log('🎯 NowScreen component is loading with Galileo design adaptation!');
   const { user } = useAuth();
   const { todos, fetchTodos, toggleComplete, deleteTodo } = useToDoContext();
+  const { 
+    todayHabits, 
+    fetchTodayHabits, 
+    toggleHabitTracking,
+    loading: habitsLoading 
+  } = useHabitContext();
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
   const [nextBlocks, setNextBlocks] = useState<Block[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
@@ -68,6 +76,7 @@ const NowScreen = ({ navigation }: any) => {
   const [allTimeBlocks, setAllTimeBlocks] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [upNextExpanded, setUpNextExpanded] = useState(false);
   
   // Background image rotation state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -335,22 +344,24 @@ const NowScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    fetchTodaySchedule();
-  }, []);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
       updateTimeRemaining();
-      
-      const now = new Date();
-      if (now.getSeconds() === 0) {
-        fetchTodaySchedule();
-      }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [currentBlock]);
+    fetchTodaySchedule();
+    fetchTodos();
+    fetchTodayHabits(); // Fetch today's habits
+
+    const timer = setTimeout(() => {
+      transitionToNextImage();
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Fetch today's todos
   useEffect(() => {
@@ -366,10 +377,22 @@ const NowScreen = ({ navigation }: any) => {
     return () => clearInterval(imageRotationInterval);
   }, [currentImageIndex, nextImageIndex]);
 
+  // Handle habit tracking
+  const handleHabitToggle = async (habitId: string) => {
+    const today = new Date();
+    const dateString = getLocalDateString(today);
+    await toggleHabitTracking(habitId, dateString);
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTodaySchedule();
-    fetchTodos(todayDate);
+    Promise.all([
+      fetchTodaySchedule(),
+      fetchTodos(),
+      fetchTodayHabits()
+    ]).then(() => {
+      setRefreshing(false);
+    });
   };
 
   // Todo handlers
@@ -379,6 +402,88 @@ const NowScreen = ({ navigation }: any) => {
 
   const handleDeleteTodo = async (id: string) => {
     await deleteTodo(id);
+  };
+
+  // Swipeable Habit Item Component
+  const SwipeableHabitItem: React.FC<{
+    habit: any;
+    onToggle: () => void;
+  }> = ({ habit, onToggle }) => {
+    const translateX = useState(new Animated.Value(0))[0];
+    const [localCompleted, setLocalCompleted] = useState(habit.completedToday);
+
+    useEffect(() => {
+      setLocalCompleted(habit.completedToday);
+    }, [habit.completedToday]);
+
+    const onGestureEvent = Animated.event(
+      [{ nativeEvent: { translationX: translateX } }],
+      { useNativeDriver: true }
+    );
+
+    const onHandlerStateChange = (event: any) => {
+      const { translationX, state } = event.nativeEvent;
+      
+      if (state === 5) { // ENDED
+        const threshold = 100;
+        
+        if (Math.abs(translationX) > threshold) {
+          // Instantly update UI
+          setLocalCompleted(!localCompleted);
+          
+          // Animate card
+          Animated.timing(translateX, {
+            toValue: translationX > 0 ? 300 : -300,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            // Then sync with backend
+            onToggle();
+            resetPosition();
+          });
+        } else {
+          resetPosition();
+        }
+      }
+    };
+
+    const resetPosition = () => {
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    return (
+      <View style={styles.swipeContainer}>
+        <PanGestureHandler
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+        >
+          <Animated.View 
+            style={[
+              styles.habitItem,
+              { transform: [{ translateX }] }
+            ]}
+          >
+            <View style={styles.habitInfo}>
+              <View style={styles.habitNameRow}>
+                <Text style={styles.habitName}>{habit.name}</Text>
+                {localCompleted && (
+                  <View style={styles.completedIcon}>
+                    <Text style={styles.completedCheckmark}>✓</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.habitStreak}>
+                Current streak: {habit.currentStreak} days
+              </Text>
+            </View>
+          </Animated.View>
+        </PanGestureHandler>
+      </View>
+    );
   };
 
   const ActivityCard = ({ activity, isUpcoming = false, timeInfo }: { 
@@ -416,6 +521,14 @@ const NowScreen = ({ navigation }: any) => {
         </View>
       </View>
     );
+  };
+
+  // Helper function to get local date string in YYYY-MM-DD format
+  const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   if (loading) {
@@ -537,43 +650,111 @@ const NowScreen = ({ navigation }: any) => {
         }
       >
         {/* Now Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Now</Text>
-          </View>
-          {currentBlock && (
-            <View style={styles.timeInfoContainer}>
-              <Text style={styles.timeBlockText}>
-                {formatTimeBlock(currentBlock.startTime, currentBlock.endTime)}
-              </Text>
-              <Text style={styles.timeRemainingText}>
-                {formatTimeRemainingShort(
-                  timeStringToMinutes(currentBlock.endTime) - getCurrentTime()
-                )}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Now Section */}
         {currentBlock && currentBlock.activities ? (
-          currentBlock.activities.map((activity, index) => (
-            <ActivityCard
-              key={index}
-              activity={activity}
-              timeInfo={formatTimeRemaining(
-                calculateActivityContinuation(
-                  activity.blockName || activity.name,
-                  currentBlock.endTime,
-                  allTimeBlocks
-                )
+          <View>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Now</Text>
+              </View>
+              {currentBlock && (
+                <View style={styles.timeInfoContainer}>
+                  <Text style={styles.timeBlockText}>
+                    {formatTimeBlock(currentBlock.startTime, currentBlock.endTime)}
+                  </Text>
+                  <Text style={styles.timeRemainingText}>
+                    {formatTimeRemainingShort(
+                      timeStringToMinutes(currentBlock.endTime) - getCurrentTime()
+                    )}
+                  </Text>
+                </View>
               )}
-            />
-          ))
+            </View>
+
+            {currentBlock.activities.map((activity, index) => (
+              <ActivityCard
+                key={index}
+                activity={activity}
+                timeInfo={formatTimeRemaining(
+                  calculateActivityContinuation(
+                    activity.blockName || activity.name,
+                    currentBlock.endTime,
+                    allTimeBlocks
+                  )
+                )}
+              />
+            ))}
+
+            {/* Up Next Section - Collapsible */}
+            {nextBlocks.length > 0 && (
+              <View style={styles.section}>
+                <TouchableOpacity 
+                  style={styles.collapsibleHeader}
+                  onPress={() => setUpNextExpanded(!upNextExpanded)}
+                >
+                  <Text style={styles.sectionTitle}>Up Next</Text>
+                  <Text style={styles.expandIcon}>{upNextExpanded ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                
+                {upNextExpanded && nextBlocks.map((block, blockIndex) => 
+                  block.activities?.map((activity, activityIndex) => {
+                    const currentTime = getCurrentTime();
+                    const startTime = timeStringToMinutes(block.startTime);
+                    const timeUntilStart = startTime - currentTime;
+                    
+                    return (
+                      <ActivityCard
+                        key={`${blockIndex}-${activityIndex}`}
+                        activity={activity}
+                        isUpcoming={true}
+                        timeInfo={formatTimeUntilStart(timeUntilStart)}
+                      />
+                    );
+                  })
+                )}
+              </View>
+            )}
+          </View>
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No scheduled activity right now</Text>
-            <Text style={styles.emptyStateSubtext}>Enjoy your free time!</Text>
+          <View>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Now</Text>
+              </View>
+            </View>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No scheduled activity right now</Text>
+              <Text style={styles.emptyStateSubtext}>Enjoy your free time!</Text>
+            </View>
+
+            {/* Up Next Section - Collapsible */}
+            {nextBlocks.length > 0 && (
+              <View style={styles.section}>
+                <TouchableOpacity 
+                  style={styles.collapsibleHeader}
+                  onPress={() => setUpNextExpanded(!upNextExpanded)}
+                >
+                  <Text style={styles.sectionTitle}>Up Next</Text>
+                  <Text style={styles.expandIcon}>{upNextExpanded ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                
+                {upNextExpanded && nextBlocks.map((block, blockIndex) => 
+                  block.activities?.map((activity, activityIndex) => {
+                    const currentTime = getCurrentTime();
+                    const startTime = timeStringToMinutes(block.startTime);
+                    const timeUntilStart = startTime - currentTime;
+                    
+                    return (
+                      <ActivityCard
+                        key={`${blockIndex}-${activityIndex}`}
+                        activity={activity}
+                        isUpcoming={true}
+                        timeInfo={formatTimeUntilStart(timeUntilStart)}
+                      />
+                    );
+                  })
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -598,29 +779,20 @@ const NowScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Up Next Section */}
-        {nextBlocks.length > 0 && (
+        {/* Today's Habits Section */}
+        {todayHabits.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Up Next</Text>
+              <Text style={styles.sectionTitle}>Today's Habits</Text>
             </View>
             
-            {nextBlocks.map((block, blockIndex) => 
-              block.activities?.map((activity, activityIndex) => {
-                const currentTime = getCurrentTime();
-                const startTime = timeStringToMinutes(block.startTime);
-                const timeUntilStart = startTime - currentTime;
-                
-                return (
-                  <ActivityCard
-                    key={`${blockIndex}-${activityIndex}`}
-                    activity={activity}
-                    isUpcoming={true}
-                    timeInfo={formatTimeUntilStart(timeUntilStart)}
-                  />
-                );
-              })
-            )}
+            {todayHabits.map((habit) => (
+              <SwipeableHabitItem
+                key={habit._id}
+                habit={habit}
+                onToggle={() => handleHabitToggle(habit._id)}
+              />
+            ))}
           </View>
         )}
       </ScrollView>
@@ -648,7 +820,7 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
   backgroundImageContainer: {
-    minHeight: 218,
+    minHeight: 72,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -799,6 +971,75 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333333',
     textAlign: 'center',
+  },
+  habitCard: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  habitTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  habitSubtitle: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  swipeContainer: {
+    flex: 1,
+  },
+  habitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  habitInfo: {
+    flex: 1,
+  },
+  habitNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  habitName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  habitStreak: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  completedIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completedCheckmark: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  expandIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginLeft: 8,
   },
 });
 
