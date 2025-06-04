@@ -4,10 +4,19 @@ import config from '../config/environment';
 
 // Helper function to get local date string in YYYY-MM-DD format
 const getLocalDateString = (date: Date): string => {
+  // CRITICAL: Use local date methods to avoid timezone conversion issues
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const result = `${year}-${month}-${day}`;
+  
+  console.log('🔄 HabitContext getLocalDateString:');
+  console.log('  - Input date:', date);
+  console.log('  - toString():', date.toString());
+  console.log('  - Local components: year=' + year + ', month=' + (date.getMonth() + 1) + ', day=' + date.getDate());
+  console.log('  - Result string:', result);
+  
+  return result;
 };
 
 // Types
