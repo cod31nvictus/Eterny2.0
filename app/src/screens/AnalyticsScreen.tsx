@@ -11,7 +11,7 @@ import {
 import { WellnessSummary, QuickStats, CategorySummary, ActivitySummary, DaySummary } from '../types';
 import api from '../services/api';
 
-const AnalyticsScreen: React.FC = () => {
+const WellnessScreen: React.FC = () => {
   const [summary, setSummary] = useState<WellnessSummary | null>(null);
   const [quickStats, setQuickStats] = useState<QuickStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -531,4 +531,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AnalyticsScreen; 
+export default WellnessScreen; 

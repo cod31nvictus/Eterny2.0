@@ -19,17 +19,6 @@ import ToDoItem from '../components/ToDoItem';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config/environment';
 
-// Background images
-const backgroundImages = [
-  require('../assets/images/backgrounds/shubham-dhage-NsPqV-WsZYY-unsplash.jpg'),
-  require('../assets/images/backgrounds/akshar-dave-BcvPlibJyo0-unsplash.jpg'),
-  require('../assets/images/backgrounds/tareq-ajalyakin-Ig1YHgmJrnQ-unsplash.jpg'),
-  require('../assets/images/backgrounds/elvis-bekmanis-g9qwoPiS0nY-unsplash.jpg'),
-  require('../assets/images/backgrounds/brennan-burling-ay53qag90W8-unsplash.jpg'),
-  require('../assets/images/backgrounds/eastman-childs-CEtIM994vaI-unsplash.jpg'),
-  require('../assets/images/backgrounds/ben-arthur-Q9Ylf-AAD04-unsplash.jpg'),
-];
-
 interface ActivityInBlock {
   _id: string;
   name: string;
@@ -45,8 +34,7 @@ interface Block {
   };
   startTime: string;
   endTime: string;
-  notes?: string;
-  activities?: ActivityInBlock[];
+  activities: ActivityInBlock[];
 }
 
 interface PlannedDay {
@@ -73,15 +61,12 @@ const NowScreen = ({ navigation }: any) => {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [allTimeBlocks, setAllTimeBlocks] = useState<any[]>([]);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [todayDate] = useState(new Date().toISOString().split('T')[0]);
   const [upNextExpanded, setUpNextExpanded] = useState(false);
-  
-  // Background image rotation state
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [nextImageIndex, setNextImageIndex] = useState(1);
-  const slideAnim = useState(new Animated.Value(0))[0];
+
+  // Static background image - no carousel
+  const staticBackgroundImage = require('../assets/images/backgrounds/eastman-childs-CEtIM994vaI-unsplash.jpg');
 
   const getCurrentTime = () => {
     const now = new Date();
@@ -140,30 +125,6 @@ const NowScreen = ({ navigation }: any) => {
 
   const formatTimeBlock = (startTime: string, endTime: string) => {
     return `${startTime} - ${endTime}`;
-  };
-
-  const getRandomImageIndex = (currentIndex: number) => {
-    let newIndex;
-    do {
-      newIndex = Math.floor(Math.random() * backgroundImages.length);
-    } while (newIndex === currentIndex);
-    return newIndex;
-  };
-
-  const transitionToNextImage = () => {
-    const newIndex = getRandomImageIndex(currentImageIndex);
-    setNextImageIndex(newIndex);
-
-    // Slide animation
-    Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start(() => {
-      // After animation completes, reset and update current image
-      setCurrentImageIndex(newIndex);
-      slideAnim.setValue(0);
-    });
   };
 
   const calculateActivityContinuation = (activityName: string, currentEndTime: string, allTimeBlocks: any[]) => {
@@ -353,29 +314,15 @@ const NowScreen = ({ navigation }: any) => {
     fetchTodos();
     fetchTodayHabits(); // Fetch today's habits
 
-    const timer = setTimeout(() => {
-      transitionToNextImage();
-    }, 5000);
-
     return () => {
       clearInterval(interval);
-      clearTimeout(timer);
     };
   }, []);
 
   // Fetch today's todos
   useEffect(() => {
-    fetchTodos(todayDate);
-  }, [fetchTodos, todayDate]);
-
-  // Background image rotation effect
-  useEffect(() => {
-    const imageRotationInterval = setInterval(() => {
-      transitionToNextImage();
-    }, 15000); // Change image every 15 seconds
-
-    return () => clearInterval(imageRotationInterval);
-  }, [currentImageIndex, nextImageIndex]);
+    fetchTodos();
+  }, [fetchTodos]);
 
   // Handle habit tracking
   const handleHabitToggle = async (habitId: string) => {
@@ -425,9 +372,7 @@ const NowScreen = ({ navigation }: any) => {
       const { translationX, state } = event.nativeEvent;
       
       if (state === 5) { // ENDED
-        const threshold = 100;
-        
-        if (Math.abs(translationX) > threshold) {
+        if (Math.abs(translationX) > 50) { // Reduced threshold to 50px (20-25% of screen)
           // Instantly update UI
           setLocalCompleted(!localCompleted);
           
@@ -545,50 +490,11 @@ const NowScreen = ({ navigation }: any) => {
       {/* Background Image Container with Clock */}
       <View style={styles.backgroundImageContainer}>
         {/* Current Image */}
-        <Animated.View 
-          style={[
-            styles.backgroundImageLayer,
-            {
-              transform: [
-                {
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -100], // Slide current image to the left
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <ImageBackground
-            source={backgroundImages[currentImageIndex]}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          />
-        </Animated.View>
-
-        {/* Next Image (slides in from right) */}
-        <Animated.View 
-          style={[
-            styles.backgroundImageLayer,
-            {
-              transform: [
-                {
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [100, 0], // Slide next image from right to center
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <ImageBackground
-            source={backgroundImages[nextImageIndex]}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          />
-        </Animated.View>
+        <ImageBackground
+          source={staticBackgroundImage}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
         
         {/* Clock Overlay */}
         <View style={styles.clockOverlay}>
@@ -827,13 +733,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     position: 'relative',
     overflow: 'hidden',
-  },
-  backgroundImageLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   backgroundImage: {
     position: 'absolute',

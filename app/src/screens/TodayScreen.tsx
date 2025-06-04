@@ -525,7 +525,7 @@ const TodayScreen = () => {
     >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>Today's Schedule</Text>
+          <Text style={styles.title}>Schedule</Text>
           <Text style={styles.date}>
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',

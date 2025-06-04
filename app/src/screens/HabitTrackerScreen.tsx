@@ -102,9 +102,12 @@ const HabitTrackerScreen: React.FC = () => {
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
-    // Get the day of the week for the first day (0 = Sunday, convert to Monday = 0)
-    const startDayOfWeek = (firstDay.getDay() + 6) % 7;
+    // Get day of week for first day (0 = Sunday, 1 = Monday, etc.)
+    let startDayOfWeek = firstDay.getDay();
+    // Convert to Monday-based week (0 = Monday, 1 = Tuesday, etc.)
+    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
     
+    const daysInMonth = lastDay.getDate();
     const days = [];
     
     // Add empty cells for days before the first day of month
@@ -112,9 +115,8 @@ const HabitTrackerScreen: React.FC = () => {
       days.push(null);
     }
     
-    // Add all days of the month - create each date explicitly in local time
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      // Create date in local timezone, avoiding any UTC conversion
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
       const dayDate = new Date(year, month, day);
       days.push(dayDate);
     }
@@ -544,9 +546,7 @@ const SwipeableHabitItem: React.FC<{
     const { translationX, state } = event.nativeEvent;
     
     if (state === 5) { // ENDED
-      const threshold = 100;
-      
-      if (Math.abs(translationX) > threshold) {
+      if (Math.abs(translationX) > 50) { // Reduced from 100px to 50px (20-25% of screen)
         // Instantly update UI
         setLocalCompleted(!localCompleted);
         
