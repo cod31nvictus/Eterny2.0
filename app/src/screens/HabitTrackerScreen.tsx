@@ -72,11 +72,18 @@ const HabitTrackerScreen: React.FC = () => {
   const fetchHabitsForDate = async (date: Date) => {
     const dateString = getLocalDateString(date);
     
+    console.log('🔍 fetchHabitsForDate Debug:');
+    console.log('  - Input date object:', date);
+    console.log('  - Generated dateString:', dateString);
+    console.log('  - Date day of week:', date.getDay(), '(0=Sunday, 1=Monday, etc.)');
+    
     // For today, use the todayHabits data which includes completion status
     const isToday = date.toDateString() === new Date().toDateString();
     if (isToday) {
+      console.log('  - Using todayHabits (this is today)');
       setSelectedDateHabits(todayHabits);
     } else {
+      console.log('  - Fetching from API for date:', dateString);
       // For other dates, fetch from API with actual completion status
       const habitsForDate = await fetchHabitsForDateFromAPI(dateString);
       setSelectedDateHabits(habitsForDate);
@@ -94,13 +101,22 @@ const HabitTrackerScreen: React.FC = () => {
     const year = date.getFullYear();
     const month = date.getMonth();
     
+    console.log('📅 generateCalendarDays Debug:');
+    console.log('  - Input date:', date);
+    console.log('  - Year:', year, 'Month:', month, '(0=January)');
+    
     // First day of the month
     const firstDay = new Date(year, month, 1);
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
+    console.log('  - First day of month:', firstDay, 'Day of week:', firstDay.getDay());
+    console.log('  - Last day of month:', lastDay);
+    
     // Get the day of the week for the first day (0 = Sunday, convert to Monday = 0)
     const startDayOfWeek = (firstDay.getDay() + 6) % 7;
+    
+    console.log('  - Start day of week (Monday=0):', startDayOfWeek);
     
     const days = [];
     
@@ -111,8 +127,12 @@ const HabitTrackerScreen: React.FC = () => {
     
     // Add all days of the month
     for (let day = 1; day <= lastDay.getDate(); day++) {
-      days.push(new Date(year, month, day));
+      const dayDate = new Date(year, month, day);
+      days.push(dayDate);
     }
+    
+    console.log('  - Generated', days.length, 'calendar cells');
+    console.log('  - First few actual dates:', days.filter(d => d).slice(0, 7).map(d => d?.toDateString()));
     
     return days;
   };
@@ -139,6 +159,12 @@ const HabitTrackerScreen: React.FC = () => {
 
   const handleDateSelect = (date: Date) => {
     if (!isFutureDate(date)) {
+      console.log('📅 Calendar Debug - Date selected:');
+      console.log('  - Raw date object:', date);
+      console.log('  - toString():', date.toString());
+      console.log('  - toDateString():', date.toDateString());
+      console.log('  - getDay() (0=Sunday):', date.getDay());
+      console.log('  - Local date string (YYYY-MM-DD):', getLocalDateString(date));
       setSelectedDate(date);
     }
   };
