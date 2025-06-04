@@ -21,6 +21,7 @@ const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 // Helper function to get local date string in YYYY-MM-DD format
 const getLocalDateString = (date: Date): string => {
   // Use local date methods to avoid timezone issues
+  // Ensure we're working with the local date components, not UTC
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -29,11 +30,14 @@ const getLocalDateString = (date: Date): string => {
   console.log('🕒 getLocalDateString Debug:');
   console.log('  - Input date:', date);
   console.log('  - toString():', date.toString());
+  console.log('  - toDateString():', date.toDateString());
   console.log('  - getFullYear():', year);
   console.log('  - getMonth():', date.getMonth(), '(0=January)');
   console.log('  - getDate():', date.getDate());
+  console.log('  - getDay():', date.getDay(), '(0=Sunday)');
   console.log('  - Result string:', result);
   console.log('  - Timezone offset:', date.getTimezoneOffset(), 'minutes');
+  console.log('  - UTC components:', date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   
   return result;
 };
@@ -117,10 +121,10 @@ const HabitTrackerScreen: React.FC = () => {
     console.log('  - Input date:', date);
     console.log('  - Year:', year, 'Month:', month, '(0=January)');
     
-    // First day of the month
-    const firstDay = new Date(year, month, 1);
+    // First day of the month - create with explicit time to avoid timezone issues
+    const firstDay = new Date(year, month, 1, 12, 0, 0, 0); // Set to noon to avoid DST issues
     // Last day of the month
-    const lastDay = new Date(year, month + 1, 0);
+    const lastDay = new Date(year, month + 1, 0, 12, 0, 0, 0);
     
     console.log('  - First day of month:', firstDay, 'Day of week:', firstDay.getDay());
     console.log('  - Last day of month:', lastDay);
@@ -137,9 +141,9 @@ const HabitTrackerScreen: React.FC = () => {
       days.push(null);
     }
     
-    // Add all days of the month
+    // Add all days of the month - create each date with explicit time
     for (let day = 1; day <= lastDay.getDate(); day++) {
-      const dayDate = new Date(year, month, day);
+      const dayDate = new Date(year, month, day, 12, 0, 0, 0); // Set to noon to avoid DST issues
       days.push(dayDate);
     }
     
