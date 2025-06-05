@@ -507,20 +507,6 @@ const NowScreen = ({ navigation }: any) => {
         <View style={styles.quickAccessGrid}>
           <TouchableOpacity 
             style={styles.quickAccessButton}
-            onPress={() => navigation.navigate('HabitTracker')}
-          >
-            <View style={styles.quickAccessIcon}>
-              <Image 
-                source={require('../assets/images/Habit Tracker.png')} 
-                style={styles.quickAccessIconImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.quickAccessText}>Habit Tracker</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickAccessButton}
             onPress={() => navigation.navigate('MenuBuilder')}
           >
             <View style={styles.quickAccessIcon}>
@@ -531,6 +517,20 @@ const NowScreen = ({ navigation }: any) => {
               />
             </View>
             <Text style={styles.quickAccessText}>Meal Builder</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessButton}
+            onPress={() => navigation.navigate('HabitTracker')}
+          >
+            <View style={styles.quickAccessIcon}>
+              <Image 
+                source={require('../assets/images/Habit Tracker.png')} 
+                style={styles.quickAccessIconImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.quickAccessText}>Habit Tracker</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
