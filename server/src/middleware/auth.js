@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const prisma = require('../config/prisma');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -11,13 +11,21 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-    
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = user;
+    // Attach user to request; provide both id and _id for backwards compatibility
+    req.user = {
+      ...user,
+      _id: user.id,
+    };
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -30,4 +38,4 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticateToken }; 
+module.exports = { authenticateToken };

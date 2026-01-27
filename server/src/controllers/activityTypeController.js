@@ -1,13 +1,18 @@
-const ActivityType = require('../models/ActivityType');
-const WellnessCategory = require('../models/WellnessCategory');
+const prisma = require('../config/prisma');
 
 // Get all activity types for a user
 const getActivityTypes = async (req, res) => {
   try {
-    const activities = await ActivityType.find({ userId: req.user._id })
-      .populate('wellnessTagIds', 'name type color')
-      .sort({ name: 1 });
-    
+    const activities = await prisma.activityType.findMany({
+      where: { userId: req.user.id },
+      include: {
+        wellnessTags: {
+          select: { id: true, name: true, type: true, color: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
     res.json(activities);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch activity types' });
@@ -25,38 +30,46 @@ const createActivityType = async (req, res) => {
     }
     
     // Verify wellness tags belong to the user
-    const userWellnessTags = await WellnessCategory.find({
-      _id: { $in: wellnessTagIds },
-      userId: req.user._id
+    const userWellnessTags = await prisma.wellnessCategory.findMany({
+      where: {
+        id: { in: wellnessTagIds },
+        userId: req.user.id,
+      },
     });
-    
+
     if (userWellnessTags.length !== wellnessTagIds.length) {
       return res.status(400).json({ error: 'Invalid wellness tag IDs' });
     }
     
     // Check if activity already exists for this user
-    const existingActivity = await ActivityType.findOne({
-      userId: req.user._id,
-      name: name.trim()
+    const existingActivity = await prisma.activityType.findFirst({
+      where: {
+        userId: req.user.id,
+        name: name.trim(),
+      },
     });
     
     if (existingActivity) {
       return res.status(400).json({ error: 'Activity with this name already exists' });
     }
     
-    const activity = new ActivityType({
-      name: name.trim(),
-      wellnessTagIds,
-      description: description?.trim(),
-      userId: req.user._id,
-      isDefault: false
+    const activity = await prisma.activityType.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim(),
+        userId: req.user.id,
+        isDefault: false,
+        wellnessTags: {
+          connect: wellnessTagIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        wellnessTags: {
+          select: { id: true, name: true, type: true, color: true },
+        },
+      },
     });
-    
-    await activity.save();
-    
-    // Populate wellness tags before returning
-    await activity.populate('wellnessTagIds', 'name type color');
-    
+
     res.status(201).json(activity);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create activity type' });
@@ -69,9 +82,13 @@ const updateActivityType = async (req, res) => {
     const { id } = req.params;
     const { name, wellnessTagIds, description } = req.body;
     
-    const activity = await ActivityType.findOne({
-      _id: id,
-      userId: req.user._id
+    const activity = await prisma.activityType.findFirst({
+      where: { id, userId: req.user.id },
+      include: {
+        wellnessTags: {
+          select: { id: true },
+        },
+      },
     });
     
     if (!activity) {
@@ -83,28 +100,41 @@ const updateActivityType = async (req, res) => {
       return res.status(400).json({ error: 'Cannot update default activities' });
     }
     
+    const data = {};
+
     // Verify wellness tags if provided
     if (wellnessTagIds && wellnessTagIds.length > 0) {
-      const userWellnessTags = await WellnessCategory.find({
-        _id: { $in: wellnessTagIds },
-        userId: req.user._id
+      const userWellnessTags = await prisma.wellnessCategory.findMany({
+        where: {
+          id: { in: wellnessTagIds },
+          userId: req.user.id,
+        },
       });
-      
+
       if (userWellnessTags.length !== wellnessTagIds.length) {
         return res.status(400).json({ error: 'Invalid wellness tag IDs' });
       }
-      
-      activity.wellnessTagIds = wellnessTagIds;
+
+      data.wellnessTags = {
+        set: wellnessTagIds.map((wtId) => ({ id: wtId })),
+      };
     }
-    
+
     // Update fields
-    if (name) activity.name = name.trim();
-    if (description !== undefined) activity.description = description?.trim();
-    
-    await activity.save();
-    await activity.populate('wellnessTagIds', 'name type color');
-    
-    res.json(activity);
+    if (name) data.name = name.trim();
+    if (description !== undefined) data.description = description?.trim();
+
+    const updated = await prisma.activityType.update({
+      where: { id },
+      data,
+      include: {
+        wellnessTags: {
+          select: { id: true, name: true, type: true, color: true },
+        },
+      },
+    });
+
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update activity type' });
   }
@@ -115,9 +145,8 @@ const deleteActivityType = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const activity = await ActivityType.findOne({
-      _id: id,
-      userId: req.user._id
+    const activity = await prisma.activityType.findFirst({
+      where: { id, userId: req.user.id },
     });
     
     if (!activity) {
@@ -129,7 +158,7 @@ const deleteActivityType = async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete default activities' });
     }
     
-    await ActivityType.findByIdAndDelete(id);
+    await prisma.activityType.delete({ where: { id } });
     res.json({ message: 'Activity deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete activity type' });

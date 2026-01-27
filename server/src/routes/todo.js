@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ToDoItem = require('../models/ToDoItem');
+const prisma = require('../config/prisma');
 const { authenticateToken } = require('../middleware/auth');
 
 // Apply authentication to all routes
@@ -12,13 +12,15 @@ router.get('/', async (req, res) => {
     const { date } = req.query;
     const userId = req.user.id;
 
-    let query = { userId };
-    if (date) {
-      query.date = date;
-    }
+    const where = {
+      userId,
+      ...(date && { date }),
+    };
 
-    const todos = await ToDoItem.find(query)
-      .sort({ date: 1, order: 1, createdAt: 1 });
+    const todos = await prisma.toDoItem.findMany({
+      where,
+      orderBy: [{ date: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
+    });
 
     res.json(todos);
   } catch (error) {
@@ -38,19 +40,22 @@ router.post('/', async (req, res) => {
     }
 
     // Get the next order number for this date
-    const lastTodo = await ToDoItem.findOne({ userId, date })
-      .sort({ order: -1 });
+    const lastTodo = await prisma.toDoItem.findFirst({
+      where: { userId, date },
+      orderBy: { order: 'desc' },
+    });
     const order = lastTodo ? lastTodo.order + 1 : 0;
 
-    const todo = new ToDoItem({
-      userId,
-      text: text.trim(),
-      date,
-      time: time || null,
-      order
+    const todo = await prisma.toDoItem.create({
+      data: {
+        userId,
+        text: text.trim(),
+        date,
+        time: time || null,
+        order,
+      },
     });
 
-    await todo.save();
     res.status(201).json(todo);
   } catch (error) {
     console.error('Error creating todo:', error);
@@ -64,15 +69,20 @@ router.patch('/:id/complete', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const todo = await ToDoItem.findOne({ _id: id, userId });
-    if (!todo) {
+    const existing = await prisma.toDoItem.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
       return res.status(404).json({ error: 'Todo not found' });
     }
 
-    todo.completed = !todo.completed;
-    await todo.save();
+    const updated = await prisma.toDoItem.update({
+      where: { id },
+      data: { completed: !existing.completed },
+    });
 
-    res.json(todo);
+    res.json(updated);
   } catch (error) {
     console.error('Error updating todo completion:', error);
     res.status(500).json({ error: 'Failed to update todo' });
@@ -86,16 +96,24 @@ router.put('/:id', async (req, res) => {
     const { text, time } = req.body;
     const userId = req.user.id;
 
-    const todo = await ToDoItem.findOne({ _id: id, userId });
-    if (!todo) {
+    const existing = await prisma.toDoItem.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
       return res.status(404).json({ error: 'Todo not found' });
     }
 
-    if (text !== undefined) todo.text = text.trim();
-    if (time !== undefined) todo.time = time || null;
+    const data = {};
+    if (text !== undefined) data.text = text.trim();
+    if (time !== undefined) data.time = time || null;
 
-    await todo.save();
-    res.json(todo);
+    const updated = await prisma.toDoItem.update({
+      where: { id },
+      data,
+    });
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating todo:', error);
     res.status(500).json({ error: 'Failed to update todo' });
@@ -108,10 +126,15 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const todo = await ToDoItem.findOneAndDelete({ _id: id, userId });
-    if (!todo) {
+    const existing = await prisma.toDoItem.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
       return res.status(404).json({ error: 'Todo not found' });
     }
+
+    await prisma.toDoItem.delete({ where: { id } });
 
     res.json({ message: 'Todo deleted successfully' });
   } catch (error) {

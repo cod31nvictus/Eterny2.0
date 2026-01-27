@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  TextInput,
 } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +15,45 @@ import config from '../../config/environment';
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   const { login } = useAuth();
+
+  const handleEmailPasswordLogin = async () => {
+    try {
+      if (!email || !password) {
+        Alert.alert('Missing information', 'Please enter your email and password.');
+        return;
+      }
+      setAuthLoading(true);
+
+      const response = await fetch(`${config.AUTH_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message = data?.error || 'Invalid email or password';
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        await login(data.token);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Unable to log in. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -115,7 +154,39 @@ const LoginScreen: React.FC = () => {
           <Text style={styles.tagline}>You. Forever.</Text>
         </View>
 
-        {/* Google Sign In Button */}
+        {/* Email/Password Login */}
+        <View style={styles.form}>
+          <Text style={styles.formLabel}>Email</Text>
+          <TextInput
+            style={styles.input}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+          />
+          <Text style={styles.formLabel}>Password</Text>
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+          />
+          <TouchableOpacity
+            style={[styles.primaryButton, (authLoading || loading) && styles.buttonDisabled]}
+            onPress={handleEmailPasswordLogin}
+            disabled={authLoading || loading}
+          >
+            {authLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Sign in</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Google Sign In Button (secondary option) */}
         <TouchableOpacity
           style={[styles.signInButton, loading && styles.signInButtonDisabled]}
           onPress={handleGoogleSignIn}
@@ -174,6 +245,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     marginBottom: 32,
+  },
+  form: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 14,
+    color: '#333333',
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    fontSize: 16,
+    color: '#000000',
+  },
+  primaryButton: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   signInButton: {
     backgroundColor: '#000000',

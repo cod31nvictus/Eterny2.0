@@ -21,7 +21,8 @@ const {
 // Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
+// Connect to MongoDB (legacy). Postgres is handled via Prisma with DATABASE_URL.
+// TODO: remove MongoDB once all models are migrated to Postgres.
 connectDB();
 
 // Initialize Passport config
@@ -29,19 +30,8 @@ require('./config/passport');
 
 const app = express();
 
-// Trust proxy for nginx reverse proxy
+// Trust proxy for reverse proxies (nginx, Railway, etc.)
 app.set('trust proxy', 1);
-
-// Force HTTPS in production
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
-    }
-  });
-}
 
 // Security middleware
 app.use(securityHeaders);
@@ -84,63 +74,67 @@ app.use('/sync', apiLimiter, require('./routes/sync'));
 app.use('/quick-stats', apiLimiter, require('./routes/summary'));
 app.use('/completion', apiLimiter, require('./routes/profile'));
 
+// Simple healthcheck for Railway and other orchestrators
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
 // Server configuration
 const PORT = process.env.PORT || 5001;
-const HTTPS_PORT = process.env.HTTPS_PORT || 443;
 const HOST = process.env.HOST || '0.0.0.0';
+const IS_RAILWAY = !!process.env.RAILWAY_ENV;
 
-if (process.env.NODE_ENV === 'production') {
-  // SSL certificate paths
+if (IS_RAILWAY) {
+  // Railway terminates SSL at the edge; run HTTP only inside the container
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 Railway server running on ${HOST}:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'production'}`);
+  });
+} else if (process.env.NODE_ENV === 'production') {
+  // Existing on-prem/VM HTTPS setup
+  const HTTPS_PORT = process.env.HTTPS_PORT || 443;
   const sslKeyPath = process.env.SSL_KEY_PATH || '/etc/letsencrypt/live/eterny-app.ddns.net/privkey.pem';
   const sslCertPath = process.env.SSL_CERT_PATH || '/etc/letsencrypt/live/eterny-app.ddns.net/fullchain.pem';
-  
+
   try {
-    // Check if SSL certificates exist
     if (fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)) {
-      // HTTPS server with SSL certificates
       const httpsOptions = {
         key: fs.readFileSync(sslKeyPath),
-        cert: fs.readFileSync(sslCertPath)
+        cert: fs.readFileSync(sslCertPath),
       };
-      
+
       https.createServer(httpsOptions, app).listen(HTTPS_PORT, HOST, () => {
         console.log(`🔒 HTTPS Server is running on ${HOST}:${HTTPS_PORT}`);
         console.log(`📊 Environment: ${process.env.NODE_ENV}`);
         console.log(`🔐 SSL certificates loaded successfully`);
       });
-      
-      // HTTP server for redirects
+
       const httpApp = express();
       httpApp.use((req, res) => {
         res.redirect(301, `https://${req.headers.host}${req.url}`);
       });
-      
+
       http.createServer(httpApp).listen(80, HOST, () => {
         console.log(`🔄 HTTP redirect server running on ${HOST}:80`);
       });
-      
     } else {
       console.log('⚠️  SSL certificates not found. Starting HTTP server only.');
-      console.log('📝 To enable HTTPS, run: sudo certbot --nginx -d eterny-app.ddns.net');
-      
-      // Fallback to HTTP if certificates don't exist
+
       app.listen(PORT, HOST, () => {
         console.log(`🚀 HTTP Server is running on ${HOST}:${PORT}`);
         console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-        console.log(`⚠️  Running without SSL - OAuth may not work properly`);
       });
     }
   } catch (error) {
     console.error('❌ Error loading SSL certificates:', error.message);
     console.log('📝 Falling back to HTTP server');
-    
+
     app.listen(PORT, HOST, () => {
       console.log(`🚀 HTTP Server is running on ${HOST}:${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`⚠️  SSL error - OAuth may not work properly`);
     });
   }
 } else {
@@ -151,4 +145,4 @@ if (process.env.NODE_ENV === 'production') {
     console.log(`🔒 Security middleware enabled`);
     console.log(`📱 Accessible from Android emulator at 10.0.2.2:${PORT}`);
   });
-} 
+}
