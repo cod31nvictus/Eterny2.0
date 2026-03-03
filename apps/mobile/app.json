@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Eterny",
+    "slug": "eterny",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "eterny",
+    "android": {
+      "package": "com.eterny.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.eterny.app"
+    },
+    "plugins": [
+      "expo-document-picker"
+    ]
+  }
+}

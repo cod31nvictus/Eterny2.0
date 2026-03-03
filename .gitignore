@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+services/api/.env
+services/mcp/.env
+
+# Build outputs
+dist/
+build/
+.expo/
+web-build/
+
+# Prisma generated client (regenerated via prisma generate)
+services/api/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code project settings
+.claude/
+
+# Android debug keystore (not for production)
+apps/mobile/android/app/debug.keystore
+
+# Expo
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Android
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+
+# iOS
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/

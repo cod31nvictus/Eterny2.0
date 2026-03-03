@@ -1,0 +1,20 @@
+{
+  "name": "eterny2.0-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "services/api",
+    "services/mcp",
+    "packages/shared"
+  ],
+  "scripts": {
+    "lint": "echo \"add lint script per package\"",
+    "test": "echo \"run tests per package\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8"
+  }
+}

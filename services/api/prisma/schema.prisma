@@ -1,0 +1,176 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  phone         String   @unique
+  passwordHash  String?
+  googleId      String?  @unique
+  appleId       String?  @unique
+  microsoftId   String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  threads       ChatThread[]
+  messages      ChatMessage[]
+  uploads       Upload[]
+  uploadChunks  UploadChunk[]
+  memories      MemoryChunk[]
+  profileFields UserProfileField[]
+  mcpRuns       McpRun[]
+  usageLogs     AiUsageLog[]
+}
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  phone      String
+  code       String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([phone, code])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String
+  role      String   // 'user' | 'assistant' | 'system'
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@index([threadId, createdAt])
+}
+
+model Upload {
+  id         String   @id @default(cuid())
+  userId     String
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  storageUrl String
+  status     String   // 'uploaded' | 'processing' | 'processed' | 'failed'
+  createdAt  DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id])
+  chunks  UploadChunk[]
+}
+
+model UploadChunk {
+  id         String   @id @default(cuid())
+  uploadId   String
+  userId     String
+  chunkIndex Int
+  text       String
+  createdAt  DateTime @default(now())
+
+  upload Upload @relation(fields: [uploadId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([uploadId, chunkIndex])
+}
+
+model MemoryChunk {
+  id         String   @id @default(cuid())
+  userId     String
+  sourceType String   // 'chat' | 'upload' | 'profile'
+  sourceId   String
+  text       String
+  embedding  Json?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, sourceType])
+}
+
+model UserProfileField {
+  id         String   @id @default(cuid())
+  userId     String
+  bucket     String   // enum-like: BasicInfo, MedicalProfile, Constraints, Biomarkers, BodyComposition, PersonalCare, Lifestyle
+  key        String
+  value      Json
+  effectiveAt DateTime
+  sourceType String   // 'user' | 'upload' | 'chat' | 'ai'
+  sourceId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, bucket, key, effectiveAt])
+}
+
+model McpRun {
+  id        String   @id @default(cuid())
+  userId    String?
+  threadId  String?
+  uploadId  String?
+  runType   String   // 'chat_turn' | 'upload_ingest'
+  status    String
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  error     String?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, runType, startedAt])
+}
+
+model AiUsageLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  provider  String   // 'openai'
+  model     String
+  tokensIn  Int
+  tokensOut Int
+  costUsd   Float?
+  sourceType String?
+  sourceId   String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
