@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  passwordHash         String?
+  emailVerifiedAt      DateTime?
+  googleId             String?  @unique
+  name                 String
+  profilePicture       String?
+  googleAccessToken    String?
+  googleRefreshToken   String?
+  googleCalendarEnabled Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  wellnessCategories   WellnessCategory[]
+  activityTypes        ActivityType[]
+  dayTemplates         DayTemplate[]
+  plannedDays          PlannedDay[]
+  toDoItems            ToDoItem[]
+}
+
+model WellnessCategory {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  isDefault   Boolean  @default(false)
+  color       String   @default("#3498db")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  activityTypes ActivityType[] @relation("ActivityWellnessTags")
+}
+
+model ActivityType {
+  id          String   @id @default(cuid())
+  name        String
+  isDefault   Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  wellnessTags WellnessCategory[] @relation("ActivityWellnessTags")
+}
+
+model DayDimension {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+
+  // JSON structure for values: [{ id, name, description }]
+  valuesJson  Json
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model DayTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startTime   String   @default("06:00")
+  isDefault   Boolean  @default(false)
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Stored as JSON mirrors of the nested schemas in Mongo
+  dimensionValues Json?
+  timeBlocks      Json?
+
+  plannedDays PlannedDay[]
+}
+
+model PlannedDay {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime?
+  isActive  Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId     String
+  templateId String
+
+  user     User       @relation(fields: [userId], references: [id])
+  template DayTemplate @relation(fields: [templateId], references: [id])
+
+  // Recurrence & exceptions stored as JSON
+  recurrence Json?
+  exceptions Json?
+}
+
+model ToDoItem {
+  id          String   @id @default(cuid())
+  text        String
+  date        String
+  time        String?
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, date, order])
+}
+
+model Habit {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tracking HabitTracking[]
+}
+
+model HabitTracking {
+  id        String   @id @default(cuid())
+  date      DateTime
+  completed Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId  String
+  habitId String
+
+  user  User  @relation(fields: [userId], references: [id])
+  habit Habit @relation(fields: [habitId], references: [id])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  fullName    String
+  dateOfBirth String
+  gender      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model McpUsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  toolName  String
+  tokensIn  Int
+  tokensOut Int
+  status    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+
